@@ -74,7 +74,7 @@ def train():
 
   print_step = 10
   project_name = "LP2_Project_NF"
-  best_model_path = '.pth'
+  best_model_path = 'best_model.pth'
 
   # Initilaize WanB
   # wandb.init(project=project_name)
@@ -97,8 +97,8 @@ def train():
   data_iter = iter(train_loader)
   data_batch, _, _ = next(data_iter)
   model = LogReg(data_batch.size(1)*2)
-  if (torch.cuda.device_count() > 1) and (device != torch.device("cpu")):
-      model= nn.DataParallel(model)
+  # if (torch.cuda.device_count() > 1) and (device != torch.device("cpu")):
+  #     model= nn.DataParallel(model)
   model.to(device)
   # Loss and Optimizer
   optimizer = optim.SGD(model.parameters(), lr=args['learning_rate'])  
