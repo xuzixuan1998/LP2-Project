@@ -68,8 +68,6 @@ def evaluate(model, val_loader, criterion):
     val_f1 += f1_score(labels, (outputs > 0.5).detach().cpu().numpy())
   return val_loss/batch_len, val_f1/batch_len
 
-
-
 def train():
 
   print_step = args['print_step']
@@ -103,6 +101,15 @@ def train():
   # Loss and Optimizer
   optimizer = optim.Adam(model.parameters(), lr=args['learning_rate'])  
   criterion = nn.BCELoss()
+  # Scheduler
+  def lr_lambda(step):
+    if step < args['warm_up']:
+        decay_factor = (step + 1) / args['warm_up']
+        return decay_factor
+    else:
+        decay_factor = 0.95** ((step - args['warm_up']) // args['weight_decay'])
+        return decay_factor
+  scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_lambda)
   # wandb.watch(model, criterion, log="all", log_freq = 100)
 
   best_f1 = 0
@@ -148,6 +155,7 @@ def train():
           # Reset 
           total_loss = 0 
           total_f1 = 0
+      scheduler.step()
   print("Finished Training")
 
 if __name__ == '__main__':
