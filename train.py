@@ -33,14 +33,14 @@ class CustomizedDataset(Dataset):
     pdb.set_trace()
     data = self.data[str(i)]
 
-    p1_embedding = torch.load(os.path.join(self.path, 'embeddings', 'data_'+str(i)+'_p1.pt'), map_location=torch.device(device))
-    p2_embedding = torch.load(os.path.join(self.path, 'embeddings', 'data_'+str(i)+'_p2.pt'), map_location=torch.device(device))
+    p1_embedding = torch.load(os.path.join(self.path, 'embeddings', 'data_'+str(i)+'_p1.pt'), map_location=torch.device(device)).unsqueeze(0)
+    p2_embedding = torch.load(os.path.join(self.path, 'embeddings', 'data_'+str(i)+'_p2.pt'), map_location=torch.device(device)).unsqueeze(0)
     label = data['label']
 
     if self.require_features:
-      p1_features = data['p1_features']
-      p2_features = data['p2_features']
-      return torch.cat((p1_embedding, F.normalize(torch.tensor(p1_features).to(device),p=2))), torch.cat((p2_embedding, F.normalize(torch.tensor(p2_features).to(device),p=2))), label
+      p1_features = torch.tensor(data['p1_features']).to(device).unsqueeze(0)
+      p2_features = torch.tensor(data['p1_features']).to(device).unsqueeze(0)
+      return torch.cat((p1_embedding, F.normalize(p1_features,p=2)),dim=1), torch.cat((p2_embedding, F.normalize(p2_features,p=2)),dim=1), label
     else:
       return p1_embedding, p2_embedding, label    
 
