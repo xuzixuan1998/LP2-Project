@@ -96,7 +96,6 @@ def train():
   # Model
   data_iter = iter(train_loader)
   data_batch, _, _ = next(data_iter)
-  pdb.set_trace()
   model = LogReg(data_batch.size(1)*2)
   if (torch.cuda.device_count() > 1) and (device != torch.device("cpu")):
       model= nn.DataParallel(model)
