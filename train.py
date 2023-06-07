@@ -32,14 +32,14 @@ class CustomizedDataset(Dataset):
   def __getitem__(self, i):
     data = self.data[str(i)]
 
-    p1_embedding = torch.load(os.path.join(self.path, 'embeddings', 'data_'+str(i)+'_p1.pt'), map_location=torch.device(device)).unsqueeze(0)
-    p2_embedding = torch.load(os.path.join(self.path, 'embeddings', 'data_'+str(i)+'_p2.pt'), map_location=torch.device(device)).unsqueeze(0)
+    p1_embedding = torch.load(os.path.join(self.path, 'embeddings', 'data_'+str(i)+'_p1.pt'), map_location=torch.device(device))
+    p2_embedding = torch.load(os.path.join(self.path, 'embeddings', 'data_'+str(i)+'_p2.pt'), map_location=torch.device(device))
     label = data['label']
 
     if self.require_features:
       p1_features = torch.tensor(data['p1_features']).to(device).unsqueeze(0)
       p2_features = torch.tensor(data['p1_features']).to(device).unsqueeze(0)
-      return torch.cat((p1_embedding, F.normalize(p1_features,p=2)),dim=1), torch.cat((p2_embedding, F.normalize(p2_features,p=2)),dim=1), label
+      return torch.cat((p1_embedding, F.normalize(p1_features,p=2)),dim=1).squeeze(0), torch.cat((p2_embedding, F.normalize(p2_features,p=2)),dim=1).squeeze(0), label
     else:
       return p1_embedding, p2_embedding, label    
 
