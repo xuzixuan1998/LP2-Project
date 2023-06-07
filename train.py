@@ -63,7 +63,7 @@ def evaluate(model, val_loader, criterion):
   for (in1, in2, labels) in val_loader:
     inputs = torch.cat((in1,in2), dim=1)
     outputs = model(inputs).reshape(-1)
-    loss = criterion(outputs, labels)
+    loss = criterion(outputs, labels.float().to(device))
     val_loss += loss.item()
     val_f1 += f1_score(labels, (outputs > 0.5).detach().cpu().numpy())
   return val_loss/batch_len, val_f1/batch_len
@@ -72,7 +72,7 @@ def evaluate(model, val_loader, criterion):
 
 def train():
 
-  print_step = 100
+  print_step = 10
   project_name = "LP2_Project_NF"
   best_model_path = 'best_model.pth'
 
