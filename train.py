@@ -39,7 +39,7 @@ class CustomizedDataset(Dataset):
     if self.require_features:
       p1_features = torch.tensor(data['p1_features']).to(device).unsqueeze(0)
       p2_features = torch.tensor(data['p1_features']).to(device).unsqueeze(0)
-      return torch.cat((p1_embedding, F.normalize(p1_features,p=2)).squeeze(0),dim=1), torch.cat((p2_embedding, F.normalize(p2_features,p=2).squeeze(0)),dim=1), label
+      return torch.cat((p1_embedding, F.normalize(p1_features,p=2).squeeze(0)),dim=1), torch.cat((p2_embedding, F.normalize(p2_features,p=2).squeeze(0)),dim=1), label
     else:
       return p1_embedding, p2_embedding, label    
 
