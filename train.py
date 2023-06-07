@@ -153,7 +153,7 @@ def train():
 if __name__ == '__main__':
   # define ArgParser
   parser = argparse.ArgumentParser(description='Model Parser')
-  parser.add_argument('-e','--n_epochs', default=50, type=int)
+  parser.add_argument('-n','--n_epochs', default=5, type=int)
   parser.add_argument('-l','--learning_rate', default=1e-4, type=float)
   parser.add_argument('-b', '--batch_size', default=256, type=int)
   parser.add_argument('-print', '--print_step', default=50, type=int)
