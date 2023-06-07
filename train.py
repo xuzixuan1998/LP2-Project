@@ -117,7 +117,7 @@ def train():
       model.train()
       inputs = torch.cat((in1,in2), dim=1)
       outputs = model(inputs).reshape(-1)
-      loss = criterion(outputs, labels)
+      loss = criterion(outputs, labels.float())
       # Backward  
       optimizer.zero_grad()
       loss.backward()
