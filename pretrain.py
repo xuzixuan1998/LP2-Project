@@ -18,43 +18,47 @@ from transformers import AutoTokenizer, AutoModel
 
 import argparse
 # GPU
-# device = 'cuda' if torch.cuda.is_available() else 'cpu'
-device = 'cpu'
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-class CustomizedDataset(Dataset):
-  def __init__(self, path, require_features=False):
-    self.path = path
-    self.require_features = require_features
-    with open(os.path.join(self.path, 'data.json')) as file:
-      self.data = json.load(file)
+# class CustomizedDataset(Dataset):
+#   def __init__(self, path, require_features=False):
+#     self.path = path
+#     self.require_features = require_features
+#     with open(os.path.join(self.path, 'data.json')) as file:
+#       self.data = json.load(file)
 
-  def __len__(self):
-    return len(self.data)
+#   def __len__(self):
+#     return len(self.data)
 
-  def __getitem__(self, i):
-    pdb.set_trace()
-    data = self.data[str(i)]
+#   def __getitem__(self, i):
+#     pdb.set_trace()
+#     data = self.data[str(i)]
 
-    p1_embedding = torch.load(os.path.join(self.path, 'embeddings', 'data_'+str(i)+'_p1.pt'), map_location=torch.device(device))
-    p2_embedding = torch.load(os.path.join(self.path, 'embeddings', 'data_'+str(i)+'_p2.pt'), map_location=torch.device(device))
-    label = data['label']
+#     p1_embedding = torch.load(os.path.join(self.path, 'embeddings', 'data_'+str(i)+'_p1.pt'), map_location=torch.device(device))
+#     p2_embedding = torch.load(os.path.join(self.path, 'embeddings', 'data_'+str(i)+'_p2.pt'), map_location=torch.device(device))
+#     label = data['label']
 
-    if self.require_features:
-      p1_features = data['p1_features']
-      p2_features = data['p2_features']
-      return torch.cat((p1_embedding, F.normalize(torch.tensor(p1_features).to(device),p=2))), torch.cat((p2_embedding, F.normalize(torch.tensor(p2_features).to(device),p=2))), label
-    else:
-      return p1_embedding, p2_embedding, label    
+#     if self.require_features:
+#       p1_features = data['p1_features']
+#       p2_features = data['p2_features']
+#       return torch.cat((p1_embedding, F.normalize(torch.tensor(p1_features).to(device),p=2))), torch.cat((p2_embedding, F.normalize(torch.tensor(p2_features).to(device),p=2))), label
+#     else:
+#       return p1_embedding, p2_embedding, label
 
-class LogReg(nn.Module):
-  def __init__(self,input_ln):
+class FTLogReg(nn.Module):
+  def __init__(self,input_ln, model_name):
     super().__init__()
+    self.pretrain = AutoModel.from_pretrained(model_name)
     self.model = nn.Sequential(
                  nn.Linear(input_ln,1),
                  nn.Sigmoid()
                   )
 
-  def forward(self, input):
+  def forward(self, inputs):
+    t1, t2, f1, f2 = inputs
+    e1 = self.pretrain(t1).last_hidden_state[0][0]
+    e2 = self.pretrain(t2).last_hidden_state[0][0]
+    input = torch.cat((torch.cat((e1, f1),dim=1), torch.cat((e2, f2),dim=1)), dim=1)
     return self.model(input)
 
 def evaluate(model, val_loader, criterion):
@@ -97,9 +101,10 @@ def train():
   val_loader = DataLoader(val_set, batch_size=args['batch_size']) 
 
   # Model
-  data_iter = iter(train_loader)
-  data_batch, _, _ = next(data_iter)
-  model = LogReg(data_batch.size(1)*2)
+  if args['features']:
+    model = LogReg(768*2)
+  else:
+    model = LogReg(input_len*2)
   if (torch.cuda.device_count() > 1) and (device != torch.device("cpu")):
       model= nn.DataParallel(model)
   model.to(device)
@@ -165,4 +170,3 @@ if __name__ == '__main__':
   args = parser.parse_args().__dict__
 
   train()
-
