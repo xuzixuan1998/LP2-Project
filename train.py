@@ -88,8 +88,8 @@ def train():
   # config.optimizer = "sgd"
 
   # set up training set and loader
-  train_set = CustomizedDataset('train/', require_features=args['features'])
-  val_set = CustomizedDataset(data_path="val/", require_features=args['features'])
+  train_set = CustomizedDataset(path='train/', require_features=args['features'])
+  val_set = CustomizedDataset(path="val/", require_features=args['features'])
 
   train_loader = DataLoader(train_set, batch_size=args['batch_size'],shuffle=True)
   val_loader = DataLoader(val_set, batch_size=args['batch_size']) 
