@@ -101,7 +101,7 @@ def train():
   #     model= nn.DataParallel(model)
   model.to(device)
   # Loss and Optimizer
-  optimizer = optim.SGD(model.parameters(), lr=args['learning_rate'])  
+  optimizer = optim.Adam(model.parameters(), lr=args['learning_rate'])  
   criterion = nn.BCELoss()
   # wandb.watch(model, criterion, log="all", log_freq = 100)
 
