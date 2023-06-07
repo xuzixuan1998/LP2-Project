@@ -2,8 +2,6 @@ import os
 import pdb
 import json
 import tqdm
-import glob
-import nltk
 # import wandb
 import numpy as np
 
@@ -113,9 +111,8 @@ def train():
   for epoch in range(args['n_epochs']):
     total_loss = 0 
     total_f1 = 0
-    step = 0
     ## for (in1, in2, labels) in tqdm(train_loader):
-    for (in1, in2, labels) in train_loader:
+    for step, (in1, in2, labels) in enumerate(tqdm.tqdm(train_loader, desc=f"Epoch {epoch+1}")):
       # model feedforward
       model.train()
       inputs = torch.cat((in1,in2), dim=1)
