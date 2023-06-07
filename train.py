@@ -32,8 +32,8 @@ class CustomizedDataset(Dataset):
   def __getitem__(self, i):
     data = self.data[str(i)]
 
-    p1_embedding = torch.load(os.path.join(self.path, 'embeddings', 'data_'+str(i)+'_p1.pt'), map_location=torch.device(device))
-    p2_embedding = torch.load(os.path.join(self.path, 'embeddings', 'data_'+str(i)+'_p2.pt'), map_location=torch.device(device))
+    p1_embedding = torch.load(os.path.join(self.path, 'embeddings', 'data_'+str(i)+'_p1.pt'), map_location=torch.device(device)).detach()
+    p2_embedding = torch.load(os.path.join(self.path, 'embeddings', 'data_'+str(i)+'_p2.pt'), map_location=torch.device(device)).detach()
     label = data['label']
 
     if self.require_features:
