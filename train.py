@@ -113,7 +113,6 @@ def train():
     ## for (in1, in2, labels) in tqdm(train_loader):
     for step, (in1, in2, labels) in enumerate(tqdm.tqdm(train_loader, desc=f"Epoch {epoch+1}")):
       # model feedforward
-      pdb.set_trace()
       model.train()
       inputs = torch.cat((in1,in2), dim=1)
       outputs = model(inputs).reshape(-1)
@@ -147,7 +146,9 @@ def train():
           print(f"Epoch [{epoch+1}/{args['n_epochs']}], Step [{step+1}], Train Avg. Loss: {avg_loss:.4f}, Train Avg. F1: {avg_f1:.4f}")
           print(f"Epoch [{epoch+1}/{args['n_epochs']}], Step [{step+1}], Val Avg. Loss: {val_loss:.4f}, Val Avg. F1: {val_f1:.4f}")
           # wandb.log( {"Epoch": epoch+1, "Step": step+1, "Avg. Loss": avg_loss, "Avg. F1": avg_f1 })
-      step +=1
+          # Reset 
+          total_loss = 0 
+          total_f1 = 0
   print("Finished Training")
 
 if __name__ == '__main__':
