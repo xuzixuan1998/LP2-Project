@@ -72,7 +72,7 @@ def evaluate(model, val_loader, criterion):
 
 def train():
 
-  print_step = 10
+  print_step = args['print_step']
   project_name = "LP2_Project_NF"
   best_model_path = 'best_model.pth'
 
@@ -156,6 +156,7 @@ if __name__ == '__main__':
   parser.add_argument('-e','--n_epochs', default=50, type=int)
   parser.add_argument('-l','--learning_rate', default=1e-4, type=float)
   parser.add_argument('-b', '--batch_size', default=256, type=int)
+  parser.add_argument('-print', '--print_step', default=50, type=int)
   parser.add_argument('-warm_up', '--warm_up', default=20, type=int)
   parser.add_argument('-weight_decay', '--weight_decay', default=25, type=int)
   parser.add_argument('-features', '--features', action='store_true', default=False)
