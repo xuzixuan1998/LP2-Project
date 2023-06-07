@@ -2,15 +2,15 @@ import os
 import pdb
 import json
 import torch
-from transformers import BertTokenizer, BertModel
+from transformers import AutoTokenizer, AutoModel
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 json_path = 'train/data.json'
 output_path = 'train/embeddings'
 model_name = "bert-base-uncased"
-tokenizer = BertTokenizer.from_pretrained(model_name)
-model = BertModel.from_pretrained(model_name).to(device)
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+model = AutoModel.from_pretrained(model_name).to(device)
 
 with open(json_path) as f:
     datas = json.load(f)
