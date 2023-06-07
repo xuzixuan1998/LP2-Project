@@ -16,8 +16,8 @@ from transformers import AutoTokenizer, AutoModel
 
 import argparse
 # GPU
-# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-device =  torch.device('cpu')
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# device = torch.device('cpu')
 
 class CustomizedDataset(Dataset):
   def __init__(self, path, require_features=False):
@@ -74,7 +74,7 @@ def train():
 
   print_step = 10
   project_name = "LP2_Project_NF"
-  best_model_path = 'best_model.pth'
+  best_model_path = '.pth'
 
   # Initilaize WanB
   # wandb.init(project=project_name)
@@ -128,7 +128,6 @@ def train():
       if (step+1) % print_step == 0:
         with torch.no_grad():
           # Train set
-          pdb.set_trace()
           avg_loss, avg_f1 = total_loss/print_step, total_f1/print_step
           # Val set
           val_loss, val_f1 = evaluate(model, val_loader, criterion)
@@ -139,7 +138,7 @@ def train():
               state_dict = model.module.state_dict()
             except AttributeError:
               state_dict = model.state_dict()
-            best_model_path = "f1" + "{:.3f}".format(avg_f1) + best_model_path
+            # best_model_path = "f1" + "{:.3f}".format(avg_f1) + best_model_path
             torch.save(state_dict, best_model_path)
             print("Saved the best model!")
           # Logging
