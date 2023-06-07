@@ -30,7 +30,6 @@ class CustomizedDataset(Dataset):
     return len(self.data)
 
   def __getitem__(self, i):
-    pdb.set_trace()
     data = self.data[str(i)]
 
     p1_embedding = torch.load(os.path.join(self.path, 'embeddings', 'data_'+str(i)+'_p1.pt'), map_location=torch.device(device)).unsqueeze(0)
@@ -97,6 +96,7 @@ def train():
   # Model
   data_iter = iter(train_loader)
   data_batch, _, _ = next(data_iter)
+  pdb.set_trace()
   model = LogReg(data_batch.size(1)*2)
   if (torch.cuda.device_count() > 1) and (device != torch.device("cpu")):
       model= nn.DataParallel(model)
@@ -114,6 +114,7 @@ def train():
     ## for (in1, in2, labels) in tqdm(train_loader):
     for step, (in1, in2, labels) in enumerate(tqdm.tqdm(train_loader, desc=f"Epoch {epoch+1}")):
       # model feedforward
+      pdb.set_trace()
       model.train()
       inputs = torch.cat((in1,in2), dim=1)
       outputs = model(inputs).reshape(-1)
@@ -129,6 +130,7 @@ def train():
       if (step+1) % print_step == 0:
         with torch.no_grad():
           # Train set
+          pdb.set_trace()
           avg_loss, avg_f1 = total_loss/print_step, total_f1/print_step
           # Val set
           val_loss, val_f1 = evaluate(model, val_loader, criterion)
