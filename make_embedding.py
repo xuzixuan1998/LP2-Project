@@ -1,4 +1,5 @@
 import os
+import pdb
 import json
 import torch
 from transformers import BertTokenizer, BertModel
@@ -14,6 +15,7 @@ model = BertModel.from_pretrained(model_name).to(device)
 with open(json_path) as f:
     datas = json.load(f)
 for i, data in datas.items():
+    pdb.set_trace()
     # Bert Embedding
     encoded = tokenizer.encode_plus(data['p1'],
                     padding="longest",
