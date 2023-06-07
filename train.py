@@ -2,7 +2,7 @@ import os
 import pdb
 import json
 import tqdm
-# import wandb
+import wandb
 import numpy as np
 
 import torch
@@ -77,14 +77,14 @@ def train():
   best_model_path = 'best_model.pth'
 
   # Initilaize WanB
-  # wandb.init(project=project_name)
-  # config = wandb.config
+  wandb.init(project=project_name)
+  config = wandb.config
 
   # set up config
-  # config.lr = 0.001
-  # config.batch_size = 16
-  # config.num_epochs = 1
-  # config.optimizer = "sgd"
+  config.lr = args['learning_rate']
+  config.batch_size = args['batch_size']
+  config.num_epochs = args['n_epochs']
+  config.optimizer = "sgd"
 
   # set up training set and loader
   train_set = CustomizedDataset(path='train/', require_features=args['features'])
@@ -144,7 +144,7 @@ def train():
           # Logging
           print(f"Epoch [{epoch+1}/{args['n_epochs']}], Step [{step+1}], Train Avg. Loss: {avg_loss:.4f}, Train Avg. F1: {avg_f1:.4f}")
           print(f"Epoch [{epoch+1}/{args['n_epochs']}], Step [{step+1}], Val Avg. Loss: {val_loss:.4f}, Val Avg. F1: {val_f1:.4f}")
-          # wandb.log( {"Epoch": epoch+1, "Step": step+1, "Avg. Loss": avg_loss, "Avg. F1": avg_f1 })
+          wandb.log( {"Epoch": epoch+1, "Step": step+1, "Train Avg. Loss": avg_loss, "Train Avg. F1": avg_f1,  'Val Avg. Loss': val_loss, 'Val Avg. F1': val_f1})
           # Reset 
           total_loss = 0 
           total_f1 = 0
