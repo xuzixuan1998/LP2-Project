@@ -16,8 +16,7 @@ from transformers import AutoTokenizer, AutoModel
 
 import argparse
 # GPU
-# device = 'cuda' if torch.cuda.is_available() else 'cpu'
-device = 'cpu'
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 class CustomizedDataset(Dataset):
   def __init__(self, path, tokenizer, require_features=False):
@@ -89,8 +88,8 @@ class FTLogReg(nn.Module):
       t1, t2, f1, f2 = inputs
     else:
       t1, t2 = inputs
-    e1 = self.pretrain(t1).last_hidden_state[0][0]
-    e2 = self.pretrain(t2).last_hidden_state[0][0]
+    e1 = self.pretrain(t1).last_hidden_state[:,0,:]
+    e2 = self.pretrain(t2).last_hidden_state[:,0,:]
     if self.require_features:
         input = torch.cat((torch.cat((e1, f1),dim=1), torch.cat((e2, f2),dim=1)), dim=1)
     else:
