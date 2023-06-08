@@ -49,9 +49,9 @@ def collate_fn(batch, tokenizer, require_features):
     batch_len = len(labels)
     encoded_batch = tokenizer.batch_encode_plus(
         p1_data+p2_data,
-        padding="max_length",
+        padding="longest",
         truncation=True,
-        max_length=256, 
+        max_length=512, 
         return_tensors="pt"
     )
     p1_text, p2_text = encoded_batch["input_ids"][:batch_len,:], encoded_batch["input_ids"][batch_len:,:]
@@ -163,9 +163,6 @@ def train():
     ## for (in1, in2, labels) in tqdm(train_loader):
     for step, batch in enumerate(tqdm.tqdm(train_loader, desc=f"Epoch {epoch+1}")):
       # model feedforward
-      if step == 150:
-        torch.cuda.profiler.profile(enable=True)
-        torch.cuda.profiler.start()
       model.train()
       inputs, labels = batch[:-1], batch[-1]
       outputs = model(inputs).reshape(-1)
@@ -179,11 +176,6 @@ def train():
         total_loss += loss.item()
         total_acc += ((labels == (outputs > 0.5)).sum()/len(labels)).item()
         total_f1 += f1_score(labels.detach().cpu().numpy(), (outputs.detach().cpu().numpy() > 0.5))
-      if step == 150:
-        torch.cuda.profiler.stop()
-        torch.cuda.profiler.profile(enable=False)
-        print(torch.cuda.memory_allocated(device=torch.device("cuda:0")))
-        print(torch.cuda.memory_allocated(device=torch.device("cuda:1")))
       # Print info
       if (step+1) % print_step == 0:
         with torch.no_grad():
