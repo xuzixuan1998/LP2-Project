@@ -87,7 +87,6 @@ class FTLogReg(nn.Module):
       (t1,m1), (t2,m2), f1, f2 = inputs
     else:
       (t1,m1), (t2,m2) = inputs
-    pdb.set_trace()
     e = self.pretrain(torch.cat((t1,t2),dim=0),torch.cat((m1,m2),dim=0)).last_hidden_state[:,0,:]
     e = self.dropout(e)
     if self.require_features:
