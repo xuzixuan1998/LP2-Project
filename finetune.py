@@ -51,7 +51,7 @@ def collate_fn(batch, tokenizer, require_features):
         p1_data+p2_data,
         padding="longest",
         truncation=True,
-        max_length=512, 
+        max_length=256, 
         return_tensors="pt"
     )
     p1_text, p2_text = encoded_batch["input_ids"][:batch_len,:], encoded_batch["input_ids"][batch_len:,:]
