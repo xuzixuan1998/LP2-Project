@@ -180,7 +180,6 @@ def train():
       if (step+1) % print_step == 0:
         with torch.no_grad():
           # Train set
-          pdb.set_trace()
           avg_loss, avg_acc, avg_f1 = total_loss/print_step, total_acc/print_step, total_f1/print_step
           # Val set
           val_loss, val_acc, val_f1 = evaluate(model, val_loader, criterion)
