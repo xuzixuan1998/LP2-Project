@@ -16,7 +16,8 @@ from transformers import AutoTokenizer, AutoModel
 
 import argparse
 # GPU
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+# device = 'cuda' if torch.cuda.is_available() else 'cpu'
+device = 'cpu'
 
 class CustomizedDataset(Dataset):
   def __init__(self, path, tokenizer, require_features=False):
