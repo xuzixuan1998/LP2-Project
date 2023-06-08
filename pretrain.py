@@ -120,8 +120,9 @@ def train():
   config.optimizer = "sgd"
 
   # set up training set and loader
-  train_set = CustomizedDataset(path='train/', require_features=args['features'])
-  val_set = CustomizedDataset(path="val/", require_features=args['features'])
+  tokenizer = AutoTokenizer.from_pretrained(args['pretrained'])
+  train_set = CustomizedDataset(path='train/', tokenizer=tokenizer,require_features=args['features'])
+  val_set = CustomizedDataset(path="val/", tokenizer=tokenizer, require_features=args['features'])
 
   train_loader = DataLoader(train_set, batch_size=args['batch_size'],shuffle=True,collate_fn=CustomizedDataset.collate_fn)
   val_loader = DataLoader(val_set, batch_size=args['batch_size'],collate_fn=CustomizedDataset.collate_fn) 
@@ -129,7 +130,7 @@ def train():
   # Model
   data_iter = iter(train_loader)
   data_batch, _, _ = next(data_iter)
-  model = FTLogReg(data_batch.size(1)*2)
+  model = FTLogReg(data_batch.size(1)*2, model_name=args['pretrained'])
 #   if (torch.cuda.device_count() > 1) and (device != torch.device("cpu")):
 #       model= nn.DataParallel(model)
   model.to(device)
