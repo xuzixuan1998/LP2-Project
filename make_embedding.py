@@ -21,14 +21,14 @@ for i, data in datas.items():
                     truncation=True,
                     max_length=512, 
                     return_tensors="pt")
-    output = model(encoded["input_ids"].to(device))
+    output = model(encoded["input_ids"].to(device), encoded['attention_mask'].to(device))
     torch.save(output.last_hidden_state[0][0], os.path.join(output_path,'data_'+i+'_p1.pt')) 
     encoded = tokenizer.encode_plus(data['p2'],
                     padding="longest",
                     truncation=True,
                     max_length=512, 
                     return_tensors="pt")
-    output = model(encoded["input_ids"].to(device))
+    output = model(encoded["input_ids"].to(device), encoded['attention_mask'].to(device))
     torch.save(output.last_hidden_state[0][0], os.path.join(output_path,'data_'+i+'_p2.pt'))   
 
 print("Done")
