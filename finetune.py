@@ -54,7 +54,6 @@ def collate_fn(batch, tokenizer, require_features):
         max_length=256, 
         return_tensors="pt"
     )
-    pdb.set_trace()
     p1_text, p2_text = encoded_batch["input_ids"][:batch_len,:], encoded_batch["input_ids"][batch_len:,:]
     p1_mask, p2_mask = encoded_batch["attention_mask"][:batch_len,:], encoded_batch["attention_mask"][batch_len:,:]
     if require_features:
