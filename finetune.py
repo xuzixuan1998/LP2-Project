@@ -190,7 +190,7 @@ def train():
               state_dict = model.module.state_dict()
             except AttributeError:
               state_dict = model.state_dict()
-            best_model_path = "f1" + "{:.3f}".format(avg_f1) + best_model_path
+            # best_model_path = "f1" + "{:.3f}".format(avg_f1) + best_model_path
             torch.save(state_dict, best_model_path)
             print("Saved the best model!")
           print(f"Epoch [{epoch+1}/{args['n_epochs']}], Step [{step+1}], Train Avg. Loss: {avg_loss:.4f}, Train Avg. Acc: {avg_acc:.4f}, Train Avg. F1: {avg_f1:.4f}")
