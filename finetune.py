@@ -83,7 +83,6 @@ class FTLogReg(nn.Module):
     self.sigmoid = nn.Sigmoid()
 
   def forward(self, inputs):
-    pdb.set_trace()
     if self.require_features:
       t1, t2, f1, f2 = inputs
     else:
@@ -114,7 +113,6 @@ def evaluate(model, val_loader, criterion):
   return val_loss/batch_len, val_acc/batch_len, val_f1/batch_len
 
 def train():
-
   print_step = args['print_step']
   project_name = "LP2_Project_NF_finetune"
   best_model_path = 'best_model_finetune.pth'
@@ -169,6 +167,7 @@ def train():
       inputs, labels = batch[:-1], batch[-1]
       outputs = model(inputs).reshape(-1)
       loss = criterion(outputs, labels)
+      pdb.set_trace()
       # Backward  
       optimizer.zero_grad()
       loss.backward()
