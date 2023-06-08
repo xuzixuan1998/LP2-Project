@@ -43,13 +43,12 @@ class CustomizedDataset(Dataset):
     else:
       return {'p1_data':p1_data, 'p2_data':p2_data, 'label':label}
     
-  @property  
-  def collate_fn(self, batch):
+def collate_fn(batch, tokenizer, require_features):
     pdb.set_trace()
     p1_data = [item['p1_data'] for item in batch]
     p2_data = [item['p2_data'] for item in batch]
     labels = [item['label'] for item in batch]
-    encoded_batch = self.tokenizer.batch_encode_plus(
+    encoded_batch = tokenizer.batch_encode_plus(
         p1_data,
         padding="longest",
         truncation=True,
@@ -57,7 +56,7 @@ class CustomizedDataset(Dataset):
         return_tensors="pt"
     )
     p1_text = encoded_batch["input_ids"]
-    encoded_batch = self.tokenizer.batch_encode_plus(
+    encoded_batch = tokenizer.batch_encode_plus(
         p2_data,
         padding="longest",
         truncation=True,
@@ -65,12 +64,12 @@ class CustomizedDataset(Dataset):
         return_tensors="pt"
     )
     p2_text = encoded_batch["input_ids"]
-    if self.require_features:
-      p1_features = torch.tensor([item['p1_features'] for item in batch])
-      p2_features = torch.tensor([item['p2_features'] for item in batch])
-      return torch.cat((p1_text, F.normalize(p1_features,p=2)), dim=1).to(device), torch.cat((p2_text, F.normalize(p2_features,p=2)), dim=1).to(device), np.array(labels)
+    if require_features:
+        p1_features = torch.tensor([item['p1_features'] for item in batch])
+        p2_features = torch.tensor([item['p2_features'] for item in batch])
+        return torch.cat((p1_text, F.normalize(p1_features,p=2)), dim=1).to(device), torch.cat((p2_text, F.normalize(p2_features,p=2)), dim=1).to(device), np.array(labels)
     else:
-      return p1_text.to(device), p2_text.to(device), np.array(labels)
+        return p1_text.to(device), p2_text.to(device), np.array(labels)
 
 class FTLogReg(nn.Module):
   def __init__(self,input_ln, model_name):
@@ -126,8 +125,8 @@ def train():
   train_set = CustomizedDataset(path='train/', tokenizer=tokenizer,require_features=args['features'])
   val_set = CustomizedDataset(path="val/", tokenizer=tokenizer, require_features=args['features'])
 
-  train_loader = DataLoader(train_set, batch_size=args['batch_size'],shuffle=True,collate_fn=train_set.collate_fn)
-  val_loader = DataLoader(val_set, batch_size=args['batch_size'],collate_fn=val_set.collate_fn) 
+  train_loader = DataLoader(train_set, batch_size=args['batch_size'],shuffle=True,collate_fn=lambda batch: collate_fn(batch, tokenizer, require_features=args['features']))
+  val_loader = DataLoader(val_set, batch_size=args['batch_size'],collate_fn=lambda batch: collate_fn(batch, tokenizer, require_features=args['features'])) 
 
   # Model
   data_iter = iter(train_loader)
