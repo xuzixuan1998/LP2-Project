@@ -51,7 +51,7 @@ def collate_fn(batch, tokenizer, require_features):
         p1_data,
         padding="max_length",
         truncation=True,
-        max_length=512, 
+        max_length=256, 
         return_tensors="pt"
     )
     p1_text = encoded_batch["input_ids"]
@@ -59,7 +59,7 @@ def collate_fn(batch, tokenizer, require_features):
         p2_data,
         padding="max_length",
         truncation=True,
-        max_length=512, 
+        max_length=256, 
         return_tensors="pt"
     )
     p2_text = encoded_batch["input_ids"]
@@ -179,7 +179,6 @@ def train():
       if (step+1) % print_step == 0:
         with torch.no_grad():
           # Train set
-          pdb.set_trace()
           avg_loss, avg_acc, avg_f1 = total_loss/print_step, total_acc/print_step, total_f1/print_step
           # Val set
           val_loss, val_acc, val_f1 = evaluate(model, val_loader, criterion)
