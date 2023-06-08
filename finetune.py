@@ -50,9 +50,9 @@ def collate_fn(batch, tokenizer, require_features):
     batch_len = len(labels)
     encoded_batch = tokenizer.batch_encode_plus(
         p1_data+p2_data,
-        padding="longest",
+        padding="max_length",
         truncation=True,
-        max_length=512, 
+        max_length=256, 
         return_tensors="pt"
     )
     p1_text, p2_text = encoded_batch["input_ids"][:batch_len,:], encoded_batch["input_ids"][batch_len:,:]
