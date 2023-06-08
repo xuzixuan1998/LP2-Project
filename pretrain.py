@@ -44,7 +44,7 @@ class CustomizedDataset(Dataset):
       return {'p1_data':p1_data, 'p2_data':p2_data, 'label':label}
     
   @property  
-  def collate_func(self, batch):
+  def collate_fn(self, batch):
     pdb.set_trace()
     p1_data = [item['p1_data'] for item in batch]
     p2_data = [item['p2_data'] for item in batch]
@@ -126,8 +126,8 @@ def train():
   train_set = CustomizedDataset(path='train/', tokenizer=tokenizer,require_features=args['features'])
   val_set = CustomizedDataset(path="val/", tokenizer=tokenizer, require_features=args['features'])
 
-  train_loader = DataLoader(train_set, batch_size=args['batch_size'],shuffle=True,collate_fn=CustomizedDataset.collate_func)
-  val_loader = DataLoader(val_set, batch_size=args['batch_size'],collate_fn=CustomizedDataset.collate_func) 
+  train_loader = DataLoader(train_set, batch_size=args['batch_size'],shuffle=True,collate_fn=CustomizedDataset.collate_fn)
+  val_loader = DataLoader(val_set, batch_size=args['batch_size'],collate_fn=CustomizedDataset.collate_fn) 
 
   # Model
   data_iter = iter(train_loader)
