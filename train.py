@@ -105,15 +105,6 @@ def train():
   # Loss and Optimizer
   optimizer = optim.AdamW(model.parameters(), lr=args['learning_rate'])  
   criterion = nn.BCELoss()
-  # Scheduler
-  def lr_lambda(step):
-    if step < args['warm_up']:
-        decay_factor = (step + 1) / args['warm_up']
-        return decay_factor
-    else:
-        decay_factor = 0.95** ((step - args['warm_up']) // args['weight_decay'])
-        return decay_factor
-  scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_lambda)
   # wandb.watch(model, criterion, log="all", log_freq = 100)
 
   best_f1 = 0
@@ -163,7 +154,6 @@ def train():
           total_loss = 0 
           total_acc = 0
           total_f1 = 0
-      scheduler.step()
   print("Finished Training")
 
 if __name__ == '__main__':
