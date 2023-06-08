@@ -49,19 +49,26 @@ def collate_fn(batch, tokenizer, require_features):
     labels = [item['label'] for item in batch]
     encoded_batch = tokenizer.batch_encode_plus(
         p1_data+p2_data,
-        padding="longest",
+        padding="max_length",
         truncation=True,
         max_length=512, 
         return_tensors="pt"
     )
-    pdb.set_trace()
-    text = encoded_batch["input_ids"]
+    p1_text = encoded_batch["input_ids"]
+    encoded_batch = tokenizer.batch_encode_plus(
+        p2_data,
+        padding="max_length",
+        truncation=True,
+        max_length=512, 
+        return_tensors="pt"
+    )
+    p2_text = encoded_batch["input_ids"]
     if require_features:
         p1_features = torch.tensor([item['p1_features'] for item in batch])
         p2_features = torch.tensor([item['p2_features'] for item in batch])
-        return text.to(device), F.normalize(p1_features,p=2,dim=1).to(device), F.normalize(p2_features,p=2,dim=1).to(device), torch.tensor(labels).float().to(device)
+        return p1_text.to(device), p2_text.to(device), F.normalize(p1_features,p=2,dim=1).to(device), F.normalize(p2_features,p=2,dim=1).to(device), torch.tensor(labels).float().to(device)
     else:
-        return text.to(device), torch.tensor(labels).float().to(device)
+        return p1_text.to(device), p2_text.to(device), torch.tensor(labels).float().to(device)
 
 class FTLogReg(nn.Module):
   def __init__(self,model_name, require_features):
@@ -77,12 +84,12 @@ class FTLogReg(nn.Module):
 
   def forward(self, inputs):
     if self.require_features:
-      t, f1, f2 = inputs
+      t1, t2, f1, f2 = inputs
     else:
-      t = inputs
-    batch_size = t.size(0)
-    e = self.pretrain(t).last_hidden_state[:,0,:]
-    e1, e2 = e[:batch_size/2,:], e[batch_size/2:,:]
+      t1, t2 = inputs
+    pdb.set_trace()
+    e = self.pretrain(torch.cat((t1,t2),dim=0)).last_hidden_state[:,0,:]
+    e1, e2 = e[:e.size(0)/2,:], e[e.size(0)/2:,:] 
     if self.require_features:
         input = torch.cat((torch.cat((e1, f1),dim=1), torch.cat((e2, f2),dim=1)), dim=1)
     else:
