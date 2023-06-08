@@ -102,7 +102,7 @@ def train():
   #     model= nn.DataParallel(model)
   model.to(device)
   # Loss and Optimizer
-  optimizer = optim.Adam(model.parameters(), lr=args['learning_rate'])  
+  optimizer = optim.AdamW(model.parameters(), lr=args['learning_rate'])  
   criterion = nn.BCELoss()
   # Scheduler
   def lr_lambda(step):

@@ -64,6 +64,7 @@ def collate_fn(batch, tokenizer, require_features):
         return_tensors="pt"
     )
     p2_text = encoded_batch["input_ids"]
+    pdb.set_trace()
     if require_features:
         p1_features = torch.tensor([item['p1_features'] for item in batch])
         p2_features = torch.tensor([item['p2_features'] for item in batch])
@@ -72,14 +73,17 @@ def collate_fn(batch, tokenizer, require_features):
         return p1_text.to(device), p2_text.to(device), np.array(labels)
 
 class FTLogReg(nn.Module):
-  def __init__(self,input_ln, model_name, require_features):
+  def __init__(self,model_name, require_features):
     super().__init__()
     self.require_features = require_features
     self.pretrain = AutoModel.from_pretrained(model_name)
-    self.model = nn.Sequential(
-                 nn.Linear(input_ln,1),
-                 nn.Sigmoid()
-                  )
+    input_size = self.pretrain.config.hidden_size
+    if require_features:
+      self.linear = nn.Linear((input_size+6)*2,1)
+    else:
+      self.linear = nn.Linear((input_size)*2,1)
+    self.sigmoid = nn.Sigmoid()
+
 
   def forward(self, inputs):
     if self.require_features:
@@ -91,8 +95,8 @@ class FTLogReg(nn.Module):
     if self.require_features:
         input = torch.cat((torch.cat((e1, f1),dim=1), torch.cat((e2, f2),dim=1)), dim=1)
     else:
-        input = torch.cat((t1, t2), dim=1)
-    return self.model(input)
+        input = torch.cat((e1, e2), dim=1)
+    return self.sigmoid(self.linear(input))
 
 def evaluate(model, val_loader, criterion):
   model.eval()
@@ -101,8 +105,8 @@ def evaluate(model, val_loader, criterion):
   val_loss = .0
   batch_len = len(val_loader)
 
-  for (in1, in2, labels) in val_loader:
-    inputs = torch.cat((in1,in2), dim=1)
+  for batch in val_loader:
+    inputs, labels = batch[:-1], batch[-1]
     outputs = model(inputs).reshape(-1)
     loss = criterion(outputs, labels.float().to(device))
     outputs = outputs.detach().cpu().numpy()
@@ -138,12 +142,12 @@ def train():
   # Model
   data_iter = iter(train_loader)
   data_batch, _, _ = next(data_iter)
-  model = FTLogReg(data_batch.size(1)*2, model_name=args['pretrained'])
+  model = FTLogReg(model_name=args['pretrained'], require_features=args['features'])
 #   if (torch.cuda.device_count() > 1) and (device != torch.device("cpu")):
 #       model= nn.DataParallel(model)
   model.to(device)
   # Loss and Optimizer
-  optimizer = optim.Adam(model.parameters(), lr=args['learning_rate'])  
+  optimizer = optim.AdamW(model.parameters(), lr=args['learning_rate'])  
   criterion = nn.BCELoss()
   # Scheduler
   def lr_lambda(step):
@@ -163,10 +167,10 @@ def train():
     total_acc = 0
     total_f1 = 0
     ## for (in1, in2, labels) in tqdm(train_loader):
-    for step, (in1, in2, labels) in enumerate(tqdm.tqdm(train_loader, desc=f"Epoch {epoch+1}")):
+    for step, batch in enumerate(tqdm.tqdm(train_loader, desc=f"Epoch {epoch+1}")):
       # model feedforward
       model.train()
-      inputs = torch.cat((in1,in2), dim=1)
+      inputs, labels = batch[:-1], batch[-1]
       outputs = model(inputs).reshape(-1)
       loss = criterion(outputs, labels)
       # Backward  
