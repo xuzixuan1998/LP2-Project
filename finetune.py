@@ -93,7 +93,7 @@ class FTLogReg(nn.Module):
         input = torch.cat((torch.cat((e[:int(e.size(0)/2),:], f1),dim=1), torch.cat((e[int(e.size(0)/2):,:], f2),dim=1)), dim=1)
     else:
         input = torch.cat((e[:int(e.size(0)/2),:], e[int(e.size(0)/2):,:]), dim=1)
-    return self.sigmoid(self.linear(input))
+    return self.model(input)
 
 def evaluate(model, val_loader, criterion):
   model.eval()
