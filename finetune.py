@@ -200,7 +200,7 @@ def train():
           total_loss = 0 
           total_acc = 0
           total_f1 = 0
-    scheduler.step()
+      scheduler.step()
   print("Finished Training")
 
 if __name__ == '__main__':
