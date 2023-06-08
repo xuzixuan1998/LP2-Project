@@ -56,12 +56,13 @@ def collate_fn(batch, tokenizer, require_features):
     )
     pdb.set_trace()
     p1_text, p2_text = encoded_batch["input_ids"][:batch_len,:], encoded_batch["input_ids"][batch_len:,:]
+    p1_mask, p2_mask = encoded_batch["attention_mask"][:batch_len,:], encoded_batch["attention_mask"][batch_len:,:]
     if require_features:
         p1_features = torch.tensor([item['p1_features'] for item in batch])
         p2_features = torch.tensor([item['p2_features'] for item in batch])
-        return p1_text, p2_text, F.normalize(p1_features,p=2,dim=1), F.normalize(p2_features,p=2,dim=1), torch.tensor(labels).float().to(device)
+        return (p1_text,p1_mask), (p2_text,p2_mask), F.normalize(p1_features,p=2,dim=1), F.normalize(p2_features,p=2,dim=1), torch.tensor(labels).float().to(device)
     else:
-        return p1_text, p2_text, torch.tensor(labels).float().to(device)
+        return (p1_text,p1_mask), (p2_text,p2_mask), torch.tensor(labels).float().to(device)
 
 class FTLogReg(nn.Module):
   def __init__(self, model_name, require_features):
@@ -84,10 +85,10 @@ class FTLogReg(nn.Module):
 
   def forward(self, inputs):
     if self.require_features:
-      t1, t2, f1, f2 = inputs
+      (t1,m1), (t2,m2), f1, f2 = inputs
     else:
-      t1, t2 = inputs
-    e = self.pretrain(torch.cat((t1,t2),dim=0)).last_hidden_state[:,0,:]
+      (t1,m1), (t2,m2) = inputs
+    e = self.pretrain(torch.cat((t1,t2),dim=0),torch.cat((m1,m2),dim=0)).last_hidden_state[:,0,:]
     if self.require_features:
         input = torch.cat((torch.cat((e[:int(e.size(0)/2),:], f1),dim=1), torch.cat((e[int(e.size(0)/2):,:], f2),dim=1)), dim=1)
     else:
@@ -136,8 +137,8 @@ def train():
 
   # Model
   model = FTLogReg(model_name=args['pretrained'], require_features=args['features'])
-  if (torch.cuda.device_count() > 1) and (device != torch.device("cpu")):
-      model= nn.DataParallel(model)
+  # if (torch.cuda.device_count() > 1) and (device != torch.device("cpu")):
+  #     model= nn.DataParallel(model)
   model.to(device)
   # Loss and Optimizer
   optimizer = optim.AdamW(model.parameters(), lr=args['learning_rate'])  
