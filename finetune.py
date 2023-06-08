@@ -89,7 +89,7 @@ class FTLogReg(nn.Module):
       t1, t2 = inputs
     pdb.set_trace()
     e = self.pretrain(torch.cat((t1,t2),dim=0)).last_hidden_state[:,0,:]
-    e1, e2 = e[:e.size(0)/2,:], e[e.size(0)/2:,:] 
+    e1, e2 = e[:int(e.size(0)/2),:], e[int(e.size(0)/2):,:] 
     if self.require_features:
         input = torch.cat((torch.cat((e1, f1),dim=1), torch.cat((e2, f2),dim=1)), dim=1)
     else:
