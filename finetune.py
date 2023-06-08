@@ -166,7 +166,7 @@ def train():
       model.train()
       inputs, labels = batch[:-1], batch[-1]
       outputs = model(inputs).reshape(-1)
-      loss = criterion(outputs, labels)
+      loss = criterion(outputs, labels.float().to(device))
       pdb.set_trace()
       # Backward  
       optimizer.zero_grad()
