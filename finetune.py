@@ -71,7 +71,7 @@ def collate_fn(batch, tokenizer, require_features):
         return p1_text.to(device), p2_text.to(device), torch.tensor(labels).float().to(device)
 
 class FTLogReg(nn.Module):
-  def __init__(self,model_name, require_features):
+  def __init__(self, model_name, require_features):
     super().__init__()
     self.require_features = require_features
     self.pretrain = AutoModel.from_pretrained(model_name)
@@ -88,11 +88,10 @@ class FTLogReg(nn.Module):
     else:
       t1, t2 = inputs
     e = self.pretrain(torch.cat((t1,t2),dim=0)).last_hidden_state[:,0,:]
-    e1, e2 = e[:int(e.size(0)/2),:], e[int(e.size(0)/2):,:] 
     if self.require_features:
-        input = torch.cat((torch.cat((e1, f1),dim=1), torch.cat((e2, f2),dim=1)), dim=1)
+        input = torch.cat((torch.cat((e[:int(e.size(0)/2),:], f1),dim=1), torch.cat((e[int(e.size(0)/2):,:], f2),dim=1)), dim=1)
     else:
-        input = torch.cat((e1, e2), dim=1)
+        input = torch.cat((e[:int(e.size(0)/2),:], e[int(e.size(0)/2):,:]), dim=1)
     return self.sigmoid(self.linear(input))
 
 def evaluate(model, val_loader, criterion):
