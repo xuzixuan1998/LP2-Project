@@ -47,7 +47,10 @@ class LogReg(nn.Module):
   def __init__(self,input_ln):
     super().__init__()
     self.model = nn.Sequential(
-                 nn.Linear(input_ln,1),
+                 nn.Linear(input_ln,512),
+                 nn.ReLU(),
+                 nn.Dropout(0.3),
+                 nn.Linear(512,1),
                  nn.Sigmoid()
                   )
 
@@ -85,7 +88,7 @@ def train():
   config.lr = args['learning_rate']
   config.batch_size = args['batch_size']
   config.num_epochs = args['n_epochs']
-  config.optimizer = "adam"
+  config.optimizer = "adamw"
 
   # set up training set and loader
   train_set = CustomizedDataset(path='train/', require_features=args['features'])
@@ -98,8 +101,6 @@ def train():
   data_iter = iter(train_loader)
   data_batch, _, _ = next(data_iter)
   model = LogReg(data_batch.size(1)*2)
-  # if (torch.cuda.device_count() > 1) and (device != torch.device("cpu")):
-  #     model= nn.DataParallel(model)
   model.to(device)
   # Loss and Optimizer
   optimizer = optim.AdamW(model.parameters(), lr=args['learning_rate'])  

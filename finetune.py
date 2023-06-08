@@ -16,8 +16,7 @@ from transformers import AutoTokenizer, AutoModel
 
 import argparse
 # GPU
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class CustomizedDataset(Dataset):
   def __init__(self, path, tokenizer, require_features=False):
     self.path = path
@@ -55,6 +54,7 @@ def collate_fn(batch, tokenizer, require_features):
         max_length=256, 
         return_tensors="pt"
     )
+    pdb.set_trace()
     p1_text, p2_text = encoded_batch["input_ids"][:batch_len,:], encoded_batch["input_ids"][batch_len:,:]
     if require_features:
         p1_features = torch.tensor([item['p1_features'] for item in batch])
@@ -68,12 +68,19 @@ class FTLogReg(nn.Module):
     super().__init__()
     self.require_features = require_features
     self.pretrain = AutoModel.from_pretrained(model_name)
+    self.dropout = nn.Dropout(0.1)
     input_size = self.pretrain.config.hidden_size
     if require_features:
-      self.linear = nn.Linear((input_size+6)*2,1)
+      linear = nn.Linear((input_size+6)*2,512)
     else:
-      self.linear = nn.Linear((input_size)*2,1)
-    self.sigmoid = nn.Sigmoid()
+      linear = nn.Linear((input_size)*2,512)
+    self.model = nn.Sequential(
+                 linear,
+                 nn.ReLU(),
+                 nn.Dropout(0.3),
+                 nn.Linear(512,1),
+                 nn.Sigmoid()
+                  )
 
   def forward(self, inputs):
     if self.require_features:
@@ -155,6 +162,9 @@ def train():
     ## for (in1, in2, labels) in tqdm(train_loader):
     for step, batch in enumerate(tqdm.tqdm(train_loader, desc=f"Epoch {epoch+1}")):
       # model feedforward
+      if step == 150:
+        torch.cuda.profiler.profile(enable=True)
+        torch.cuda.profiler.start()
       model.train()
       inputs, labels = batch[:-1], batch[-1]
       outputs = model(inputs).reshape(-1)
@@ -168,6 +178,11 @@ def train():
         total_loss += loss.item()
         total_acc += ((labels == (outputs > 0.5)).sum()/len(labels)).item()
         total_f1 += f1_score(labels.detach().cpu().numpy(), (outputs.detach().cpu().numpy() > 0.5))
+      if step == 150:
+        torch.cuda.profiler.stop()
+        torch.cuda.profiler.profile(enable=False)
+        print(torch.cuda.memory_allocated(device=torch.device("cuda:0")))
+        print(torch.cuda.memory_allocated(device=torch.device("cuda:1")))
       # Print info
       if (step+1) % print_step == 0:
         with torch.no_grad():
@@ -207,5 +222,5 @@ if __name__ == '__main__':
   parser.add_argument('-features', '--features', action='store_true', default=False)
   parser.add_argument('-p','--pretrained', default='bert-base-uncased', type=str)
   args = parser.parse_args().__dict__
-
+  
   train()
