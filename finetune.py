@@ -109,7 +109,7 @@ def evaluate(model, val_loader, criterion):
     with torch.no_grad():
       val_loss += loss.item()
       val_acc += (labels == (outputs > 0.5)).sum()/len(labels)
-      val_f1 += f1_score(labels, (outputs > 0.5))
+      val_f1 += f1_score(labels.detach().cpu().numpy(), (outputs.detach().cpu().numpy() > 0.5))
   return val_loss/batch_len, val_acc/batch_len, val_f1/batch_len
 
 def train():
@@ -176,7 +176,7 @@ def train():
       with torch.no_grad():
         total_loss += loss.item()
         total_acc += (labels == (outputs > 0.5)).sum()/len(labels)
-        total_f1 += f1_score(labels, (outputs > 0.5))
+        total_f1 += f1_score(labels.detach().cpu().numpy(), (outputs.detach().cpu().numpy() > 0.5))
       # Print info
       if (step+1) % print_step == 0:
         with torch.no_grad():
