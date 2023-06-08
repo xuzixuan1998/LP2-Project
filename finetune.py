@@ -136,8 +136,8 @@ def train():
 
   # Model
   model = FTLogReg(model_name=args['pretrained'], require_features=args['features'])
-  # if (torch.cuda.device_count() > 1) and (device != torch.device("cpu")):
-  #     model= nn.DataParallel(model)
+  if (torch.cuda.device_count() > 1) and (device != torch.device("cpu")):
+      model= nn.DataParallel(model)
   model.to(device)
   # Loss and Optimizer
   optimizer = optim.AdamW(model.parameters(), lr=args['learning_rate'])  
