@@ -59,9 +59,9 @@ def collate_fn(batch, tokenizer, require_features):
     if require_features:
         p1_features = torch.tensor([item['p1_features'] for item in batch])
         p2_features = torch.tensor([item['p2_features'] for item in batch])
-        return p1_text, p2_text, F.normalize(p1_features,p=2,dim=1), F.normalize(p2_features,p=2,dim=1), torch.tensor(labels).float()
+        return p1_text, p2_text, F.normalize(p1_features,p=2,dim=1), F.normalize(p2_features,p=2,dim=1), torch.tensor(labels).float().to(device)
     else:
-        return p1_text, p2_text, torch.tensor(labels).float()
+        return p1_text, p2_text, torch.tensor(labels).float().to(device)
 
 class FTLogReg(nn.Module):
   def __init__(self, model_name, require_features):
@@ -97,7 +97,7 @@ def evaluate(model, val_loader, criterion):
   for batch in val_loader:
     inputs, labels = batch[:-1], batch[-1]
     outputs = model(inputs).reshape(-1)
-    loss = criterion(outputs, labels.to(device))
+    loss = criterion(outputs, labels)
     with torch.no_grad():
       val_loss += loss.item()
       val_acc += ((labels == (outputs > 0.5)).sum()/len(labels)).item()
