@@ -48,7 +48,7 @@ def collate_fn(batch, tokenizer, require_features):
     p2_data = [item['p2_data'] for item in batch]
     labels = [item['label'] for item in batch]
     encoded_batch = tokenizer.batch_encode_plus(
-        p1_data+p2_data,
+        p1_data,
         padding="max_length",
         truncation=True,
         max_length=512, 
