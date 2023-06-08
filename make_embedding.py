@@ -6,8 +6,8 @@ from transformers import AutoTokenizer, AutoModel
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-json_path = 'train/data.json'
-output_path = 'train/embeddings'
+json_path = 'val/data.json'
+output_path = 'val/embeddings'
 model_name = "bert-base-uncased"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModel.from_pretrained(model_name).to(device)
