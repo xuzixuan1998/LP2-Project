@@ -87,7 +87,6 @@ class FTLogReg(nn.Module):
       t1, t2, f1, f2 = inputs
     else:
       t1, t2 = inputs
-    pdb.set_trace()
     e = self.pretrain(torch.cat((t1,t2),dim=0)).last_hidden_state[:,0,:]
     e1, e2 = e[:int(e.size(0)/2),:], e[int(e.size(0)/2):,:] 
     if self.require_features:
@@ -181,6 +180,7 @@ def train():
       if (step+1) % print_step == 0:
         with torch.no_grad():
           # Train set
+          pdb.set_trace()
           avg_loss, avg_acc, avg_f1 = total_loss/print_step, total_acc/print_step, total_f1/print_step
           # Val set
           val_loss, val_acc, val_f1 = evaluate(model, val_loader, criterion)
