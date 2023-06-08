@@ -78,14 +78,8 @@ class FTLogReg(nn.Module):
   def forward(self, inputs):
     if self.require_features:
       t1, t2, f1, f2 = inputs
-      # t1.to(device)
-      # t2.to(device)
-      # f1.to(device)
-      # f2.to(device)
     else:
       t1, t2 = inputs
-      # t1.to(device)
-      # t2.to(device)
     e = self.pretrain(torch.cat((t1,t2),dim=0)).last_hidden_state[:,0,:]
     if self.require_features:
         input = torch.cat((torch.cat((e[:int(e.size(0)/2),:], f1),dim=1), torch.cat((e[int(e.size(0)/2):,:], f2),dim=1)), dim=1)
