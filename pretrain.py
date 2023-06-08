@@ -67,13 +67,14 @@ def collate_fn(batch, tokenizer, require_features):
     if require_features:
         p1_features = torch.tensor([item['p1_features'] for item in batch])
         p2_features = torch.tensor([item['p2_features'] for item in batch])
-        return torch.cat((p1_text, F.normalize(p1_features,p=2)), dim=1).to(device), torch.cat((p2_text, F.normalize(p2_features,p=2)), dim=1).to(device), np.array(labels)
+        return p1_text.to(device), p2_text.to(device), F.normalize(p1_features,p=2,dim=1).to(device), F.normalize(p2_features,p=2,dim=1).to(device), np.array(labels)
     else:
         return p1_text.to(device), p2_text.to(device), np.array(labels)
 
 class FTLogReg(nn.Module):
-  def __init__(self,input_ln, model_name):
+  def __init__(self,input_ln, model_name, require_features):
     super().__init__()
+    self.require_features = require_features
     self.pretrain = AutoModel.from_pretrained(model_name)
     self.model = nn.Sequential(
                  nn.Linear(input_ln,1),
@@ -81,10 +82,16 @@ class FTLogReg(nn.Module):
                   )
 
   def forward(self, inputs):
-    t1, t2, f1, f2 = inputs
+    if self.require_features:
+      t1, t2, f1, f2 = inputs
+    else:
+      t1, t2 = inputs
     e1 = self.pretrain(t1).last_hidden_state[0][0]
     e2 = self.pretrain(t2).last_hidden_state[0][0]
-    input = torch.cat((torch.cat((e1, f1),dim=1), torch.cat((e2, f2),dim=1)), dim=1)
+    if self.require_features:
+        input = torch.cat((torch.cat((e1, f1),dim=1), torch.cat((e2, f2),dim=1)), dim=1)
+    else:
+        input = torch.cat((t1, t2), dim=1)
     return self.model(input)
 
 def evaluate(model, val_loader, criterion):
