@@ -56,6 +56,7 @@ def collate_fn(batch, tokenizer, require_features):
         return_tensors="pt"
     )
     p1_text, p2_text = encoded_batch["input_ids"][:int(batch_len/2),:], encoded_batch["input_ids"][int(batch_len/2):,:]
+    pdb.set_trace()
     if require_features:
         p1_features = torch.tensor([item['p1_features'] for item in batch])
         p2_features = torch.tensor([item['p2_features'] for item in batch])
