@@ -56,6 +56,7 @@ class LogReg(nn.Module):
 
 def evaluate(model, val_loader, criterion):
   model.eval()
+  val_acc = .0
   val_f1 = .0
   val_loss = .0
   batch_len = len(val_loader)
@@ -64,9 +65,11 @@ def evaluate(model, val_loader, criterion):
     inputs = torch.cat((in1,in2), dim=1)
     outputs = model(inputs).reshape(-1)
     loss = criterion(outputs, labels.float().to(device))
+    outputs = outputs.detach().cpu().numpy()
     val_loss += loss.item()
-    val_f1 += f1_score(labels, (outputs > 0.5).detach().cpu().numpy())
-  return val_loss/batch_len, val_f1/batch_len
+    val_acc += (labels == (outputs > 0.5)).sum()/len(labels)
+    val_f1 += f1_score(labels, (outputs > 0.5))
+  return val_loss/batch_len, val_acc/batch_len, val_f1/batch_len
 
 def train():
 
@@ -82,7 +85,7 @@ def train():
   config.lr = args['learning_rate']
   config.batch_size = args['batch_size']
   config.num_epochs = args['n_epochs']
-  config.optimizer = "sgd"
+  config.optimizer = "adam"
 
   # set up training set and loader
   train_set = CustomizedDataset(path='train/', require_features=args['features'])
@@ -116,6 +119,7 @@ def train():
   # Main training Loop
   for epoch in range(args['n_epochs']):
     total_loss = 0 
+    total_acc = 0
     total_f1 = 0
     ## for (in1, in2, labels) in tqdm(train_loader):
     for step, (in1, in2, labels) in enumerate(tqdm.tqdm(train_loader, desc=f"Epoch {epoch+1}")):
@@ -129,15 +133,17 @@ def train():
       loss.backward()
       optimizer.step()
       # Train measurement 
+      outputs = outputs.detach().cpu().numpy()
       total_loss += loss.item()
-      total_f1 += f1_score(labels, (outputs > 0.5).detach().cpu().numpy())
+      total_acc += (labels == (outputs > 0.5)).sum()/len(labels)
+      total_f1 += f1_score(labels, (outputs > 0.5))
       # Print info
       if (step+1) % print_step == 0:
         with torch.no_grad():
           # Train set
-          avg_loss, avg_f1 = total_loss/print_step, total_f1/print_step
+          avg_loss, avg_acc, avg_f1 = total_loss/print_step, total_acc/print_step, total_f1/print_step
           # Val set
-          val_loss, val_f1 = evaluate(model, val_loader, criterion)
+          val_loss, val_acc, val_f1 = evaluate(model, val_loader, criterion)
           # Save the best model
           if val_f1 > best_f1:
             best_f1 = avg_f1
@@ -149,11 +155,12 @@ def train():
             torch.save(state_dict, best_model_path)
             print("Saved the best model!")
           # Logging
-          print(f"Epoch [{epoch+1}/{args['n_epochs']}], Step [{step+1}], Train Avg. Loss: {avg_loss:.4f}, Train Avg. F1: {avg_f1:.4f}")
-          print(f"Epoch [{epoch+1}/{args['n_epochs']}], Step [{step+1}], Val Avg. Loss: {val_loss:.4f}, Val Avg. F1: {val_f1:.4f}")
-          wandb.log( {"Epoch": epoch+1, "Step": step+1, "Train Avg. Loss": avg_loss, "Train Avg. F1": avg_f1,  'Val Avg. Loss': val_loss, 'Val Avg. F1': val_f1})
+          print(f"Epoch [{epoch+1}/{args['n_epochs']}], Step [{step+1}], Train Avg. Loss: {avg_loss:.4f}, Train Avg. Acc: {avg_acc:.4f}, Train Avg. F1: {avg_f1:.4f}")
+          print(f"Epoch [{epoch+1}/{args['n_epochs']}], Step [{step+1}], Val Avg. Loss: {val_loss:.4f}, Val Avg. Acc: {val_acc:.4f}, Val Avg. F1: {val_f1:.4f}")
+          wandb.log( {"Epoch": epoch+1, "Step": step+1, "Train Avg. Loss": avg_loss, "Train Avg. Acc": avg_acc, "Train Avg. F1": avg_f1,  'Val Avg. Loss': val_loss, "Val Avg. Acc": val_acc, 'Val Avg. F1': val_f1})
           # Reset 
           total_loss = 0 
+          total_acc = 0
           total_f1 = 0
       scheduler.step()
   print("Finished Training")
