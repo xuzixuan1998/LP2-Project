@@ -2,7 +2,6 @@ import os
 import pdb
 import json
 import tqdm
-import nltk
 import wandb
 import numpy as np
 
