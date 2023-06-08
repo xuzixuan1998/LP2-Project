@@ -44,7 +44,6 @@ class CustomizedDataset(Dataset):
       return {'p1_data':p1_data, 'p2_data':p2_data, 'label':label}
     
 def collate_fn(batch, tokenizer, require_features):
-    pdb.set_trace()
     p1_data = [item['p1_data'] for item in batch]
     p2_data = [item['p2_data'] for item in batch]
     labels = [item['label'] for item in batch]
