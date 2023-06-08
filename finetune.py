@@ -108,7 +108,7 @@ def evaluate(model, val_loader, criterion):
     loss = criterion(outputs, labels)
     with torch.no_grad():
       val_loss += loss.item()
-      val_acc += (labels == (outputs > 0.5)).sum()/len(labels)
+      val_acc += ((labels == (outputs > 0.5)).sum()/len(labels)).item()
       val_f1 += f1_score(labels.detach().cpu().numpy(), (outputs.detach().cpu().numpy() > 0.5))
   return val_loss/batch_len, val_acc/batch_len, val_f1/batch_len
 
@@ -167,7 +167,6 @@ def train():
       inputs, labels = batch[:-1], batch[-1]
       outputs = model(inputs).reshape(-1)
       loss = criterion(outputs, labels.float().to(device))
-      pdb.set_trace()
       # Backward  
       optimizer.zero_grad()
       loss.backward()
@@ -175,12 +174,13 @@ def train():
       # Train measurement 
       with torch.no_grad():
         total_loss += loss.item()
-        total_acc += (labels == (outputs > 0.5)).sum()/len(labels)
+        total_acc += ((labels == (outputs > 0.5)).sum()/len(labels)).item()
         total_f1 += f1_score(labels.detach().cpu().numpy(), (outputs.detach().cpu().numpy() > 0.5))
       # Print info
       if (step+1) % print_step == 0:
         with torch.no_grad():
           # Train set
+          pdb.set_trace()
           avg_loss, avg_acc, avg_f1 = total_loss/print_step, total_acc/print_step, total_f1/print_step
           # Val set
           val_loss, val_acc, val_f1 = evaluate(model, val_loader, criterion)
