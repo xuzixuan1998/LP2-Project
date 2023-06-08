@@ -2,9 +2,8 @@ import os
 import pdb
 import json
 import tqdm
-import glob
 import nltk
-# import wandb
+import wandb
 import numpy as np
 
 import torch
@@ -20,30 +19,59 @@ import argparse
 # GPU
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-# class CustomizedDataset(Dataset):
-#   def __init__(self, path, require_features=False):
-#     self.path = path
-#     self.require_features = require_features
-#     with open(os.path.join(self.path, 'data.json')) as file:
-#       self.data = json.load(file)
+class CustomizedDataset(Dataset):
+  def __init__(self, path, tokenizer, require_features=False):
+    self.path = path
+    self.tokenizer = tokenizer
+    self.require_features = require_features
+    with open(os.path.join(self.path, 'data.json')) as file:
+      self.data = json.load(file)
 
-#   def __len__(self):
-#     return len(self.data)
+  def __len__(self):
+    return len(self.data)
 
-#   def __getitem__(self, i):
-#     pdb.set_trace()
-#     data = self.data[str(i)]
+  def __getitem__(self, i):
+    data = self.data[str(i)]
 
-#     p1_embedding = torch.load(os.path.join(self.path, 'embeddings', 'data_'+str(i)+'_p1.pt'), map_location=torch.device(device))
-#     p2_embedding = torch.load(os.path.join(self.path, 'embeddings', 'data_'+str(i)+'_p2.pt'), map_location=torch.device(device))
-#     label = data['label']
+    p1_data = data['p1']
+    p2_data = data['p2']
+    label = data['label']
 
-#     if self.require_features:
-#       p1_features = data['p1_features']
-#       p2_features = data['p2_features']
-#       return torch.cat((p1_embedding, F.normalize(torch.tensor(p1_features).to(device),p=2))), torch.cat((p2_embedding, F.normalize(torch.tensor(p2_features).to(device),p=2))), label
-#     else:
-#       return p1_embedding, p2_embedding, label
+    if self.require_features:
+      p1_features = data['p1_features']
+      p2_features = data['p2_features']
+      return {'p1_data':p1_data, 'p2_data':p2_data, 'p1_features':p1_features, 'p2_features':p2_features, 'label':label}
+    else:
+      return {'p1_data':p1_data, 'p2_data':p2_data, 'label':label}
+    
+  @property  
+  def collate_func(self, batch):
+    pdb.set_trace()
+    p1_data = [item['p1_data'] for item in batch]
+    p2_data = [item['p2_data'] for item in batch]
+    labels = [item['label'] for item in batch]
+    encoded_batch = self.tokenizer.batch_encode_plus(
+        p1_data,
+        padding="longest",
+        truncation=True,
+        max_length=512, 
+        return_tensors="pt"
+    )
+    p1_text = encoded_batch["input_ids"]
+    encoded_batch = self.tokenizer.batch_encode_plus(
+        p2_data,
+        padding="longest",
+        truncation=True,
+        max_length=512, 
+        return_tensors="pt"
+    )
+    p2_text = encoded_batch["input_ids"]
+    if self.require_features:
+      p1_features = torch.tensor([item['p1_features'] for item in batch])
+      p2_features = torch.tensor([item['p2_features'] for item in batch])
+      return torch.cat((p1_text, F.normalize(p1_features,p=2)), dim=1).to(device), torch.cat((p2_text, F.normalize(p2_features,p=2)), dim=1).to(device), np.array(labels)
+    else:
+      return p1_text.to(device), p2_text.to(device), np.array(labels)
 
 class FTLogReg(nn.Module):
   def __init__(self,input_ln, model_name):
@@ -75,42 +103,48 @@ def evaluate(model, val_loader, criterion):
     val_f1 += f1_score(labels, (outputs > 0.5).detach().cpu().numpy())
   return val_loss/batch_len, val_f1/batch_len
 
-
-
 def train():
 
-  print_step = 100
+  print_step = args['print_step']
   project_name = "LP2_Project_NF"
   best_model_path = 'best_model.pth'
 
   # Initilaize WanB
-  # wandb.init(project=project_name)
-  # config = wandb.config
+  wandb.init(project=project_name)
+  config = wandb.config
 
   # set up config
-  # config.lr = 0.001
-  # config.batch_size = 16
-  # config.num_epochs = 1
-  # config.optimizer = "sgd"
+  config.lr = args['learning_rate']
+  config.batch_size = args['batch_size']
+  config.num_epochs = args['n_epochs']
+  config.optimizer = "sgd"
 
   # set up training set and loader
-  train_set = CustomizedDataset('train/', require_features=args['features'])
-  val_set = CustomizedDataset(data_path="val/", require_features=args['features'])
+  train_set = CustomizedDataset(path='train/', require_features=args['features'])
+  val_set = CustomizedDataset(path="val/", require_features=args['features'])
 
-  train_loader = DataLoader(train_set, batch_size=args['batch_size'],shuffle=True)
-  val_loader = DataLoader(val_set, batch_size=args['batch_size']) 
+  train_loader = DataLoader(train_set, batch_size=args['batch_size'],shuffle=True,collate_fn=CustomizedDataset.collate_fn)
+  val_loader = DataLoader(val_set, batch_size=args['batch_size'],collate_fn=CustomizedDataset.collate_fn) 
 
   # Model
-  if args['features']:
-    model = LogReg(768*2)
-  else:
-    model = LogReg(input_len*2)
-  if (torch.cuda.device_count() > 1) and (device != torch.device("cpu")):
-      model= nn.DataParallel(model)
+  data_iter = iter(train_loader)
+  data_batch, _, _ = next(data_iter)
+  model = FTLogReg(data_batch.size(1)*2)
+#   if (torch.cuda.device_count() > 1) and (device != torch.device("cpu")):
+#       model= nn.DataParallel(model)
   model.to(device)
   # Loss and Optimizer
-  optimizer = optim.SGD(model.parameters(), lr=args['learning_rate'])  
+  optimizer = optim.Adam(model.parameters(), lr=args['learning_rate'])  
   criterion = nn.BCELoss()
+  # Scheduler
+  def lr_lambda(step):
+    if step < args['warm_up']:
+        decay_factor = (step + 1) / args['warm_up']
+        return decay_factor
+    else:
+        decay_factor = 0.95** ((step - args['warm_up']) // args['weight_decay'])
+        return decay_factor
+  scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_lambda)
   # wandb.watch(model, criterion, log="all", log_freq = 100)
 
   best_f1 = 0
@@ -118,9 +152,8 @@ def train():
   for epoch in range(args['n_epochs']):
     total_loss = 0 
     total_f1 = 0
-    step = 0
     ## for (in1, in2, labels) in tqdm(train_loader):
-    for (in1, in2, labels) in train_loader:
+    for step, (in1, in2, labels) in enumerate(tqdm.tqdm(train_loader, desc=f"Epoch {epoch+1}")):
       # model feedforward
       model.train()
       inputs = torch.cat((in1,in2), dim=1)
@@ -150,11 +183,13 @@ def train():
             best_model_path = "f1" + "{:.3f}".format(avg_f1) + best_model_path
             torch.save(state_dict, best_model_path)
             print("Saved the best model!")
-          # Logging
           print(f"Epoch [{epoch+1}/{args['n_epochs']}], Step [{step+1}], Train Avg. Loss: {avg_loss:.4f}, Train Avg. F1: {avg_f1:.4f}")
           print(f"Epoch [{epoch+1}/{args['n_epochs']}], Step [{step+1}], Val Avg. Loss: {val_loss:.4f}, Val Avg. F1: {val_f1:.4f}")
-          # wandb.log( {"Epoch": epoch+1, "Step": step+1, "Avg. Loss": avg_loss, "Avg. F1": avg_f1 })
-      step +=1
+          wandb.log( {"Epoch": epoch+1, "Step": step+1, "Train Avg. Loss": avg_loss, "Train Avg. F1": avg_f1,  'Val Avg. Loss': val_loss, 'Val Avg. F1': val_f1})
+          # Reset 
+          total_loss = 0 
+          total_f1 = 0
+      scheduler.step()
   print("Finished Training")
 
 if __name__ == '__main__':
