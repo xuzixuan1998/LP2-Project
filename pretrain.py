@@ -126,8 +126,8 @@ def train():
   train_set = CustomizedDataset(path='train/', tokenizer=tokenizer,require_features=args['features'])
   val_set = CustomizedDataset(path="val/", tokenizer=tokenizer, require_features=args['features'])
 
-  train_loader = DataLoader(train_set, batch_size=args['batch_size'],shuffle=True,collate_fn=CustomizedDataset.collate_fn)
-  val_loader = DataLoader(val_set, batch_size=args['batch_size'],collate_fn=CustomizedDataset.collate_fn) 
+  train_loader = DataLoader(train_set, batch_size=args['batch_size'],shuffle=True,collate_fn=CustomizedDataset.collate_func)
+  val_loader = DataLoader(val_set, batch_size=args['batch_size'],collate_fn=CustomizedDataset.collate_func) 
 
   # Model
   data_iter = iter(train_loader)
