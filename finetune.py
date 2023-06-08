@@ -63,7 +63,6 @@ def collate_fn(batch, tokenizer, require_features):
         return_tensors="pt"
     )
     p2_text = encoded_batch["input_ids"]
-    pdb.set_trace()
     if require_features:
         p1_features = torch.tensor([item['p1_features'] for item in batch])
         p2_features = torch.tensor([item['p2_features'] for item in batch])
@@ -83,8 +82,8 @@ class FTLogReg(nn.Module):
       self.linear = nn.Linear((input_size)*2,1)
     self.sigmoid = nn.Sigmoid()
 
-
   def forward(self, inputs):
+    pdb.set_trace()
     if self.require_features:
       t1, t2, f1, f2 = inputs
     else:
@@ -139,8 +138,6 @@ def train():
   val_loader = DataLoader(val_set, batch_size=args['batch_size'],collate_fn=lambda batch: collate_fn(batch, tokenizer, require_features=args['features'])) 
 
   # Model
-  data_iter = iter(train_loader)
-  data_batch, _, _ = next(data_iter)
   model = FTLogReg(model_name=args['pretrained'], require_features=args['features'])
 #   if (torch.cuda.device_count() > 1) and (device != torch.device("cpu")):
 #       model= nn.DataParallel(model)
