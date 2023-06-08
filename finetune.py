@@ -47,28 +47,21 @@ def collate_fn(batch, tokenizer, require_features):
     p1_data = [item['p1_data'] for item in batch]
     p2_data = [item['p2_data'] for item in batch]
     labels = [item['label'] for item in batch]
+    batch_len = len(labels)
     encoded_batch = tokenizer.batch_encode_plus(
-        p1_data,
-        padding="max_length",
+        p1_data+p2_data,
+        padding="longest",
         truncation=True,
-        max_length=256, 
+        max_length=512, 
         return_tensors="pt"
     )
-    p1_text = encoded_batch["input_ids"]
-    encoded_batch = tokenizer.batch_encode_plus(
-        p2_data,
-        padding="max_length",
-        truncation=True,
-        max_length=256, 
-        return_tensors="pt"
-    )
-    p2_text = encoded_batch["input_ids"]
+    p1_text, p2_text = encoded_batch["input_ids"][:batch_len/2,:], encoded_batch["input_ids"][batch_len/2:,:]
     if require_features:
         p1_features = torch.tensor([item['p1_features'] for item in batch])
         p2_features = torch.tensor([item['p2_features'] for item in batch])
-        return p1_text.to(device), p2_text.to(device), F.normalize(p1_features,p=2,dim=1).to(device), F.normalize(p2_features,p=2,dim=1).to(device), torch.tensor(labels).float().to(device)
+        return p1_text, p2_text, F.normalize(p1_features,p=2,dim=1), F.normalize(p2_features,p=2,dim=1), torch.tensor(labels).float()
     else:
-        return p1_text.to(device), p2_text.to(device), torch.tensor(labels).float().to(device)
+        return p1_text, p2_text, torch.tensor(labels).float()
 
 class FTLogReg(nn.Module):
   def __init__(self, model_name, require_features):
@@ -85,8 +78,14 @@ class FTLogReg(nn.Module):
   def forward(self, inputs):
     if self.require_features:
       t1, t2, f1, f2 = inputs
+      t1.to(device)
+      t2.to(device)
+      f1.to(device)
+      f2.to(device)
     else:
       t1, t2 = inputs
+      t1.to(device)
+      t2.to(device)
     e = self.pretrain(torch.cat((t1,t2),dim=0)).last_hidden_state[:,0,:]
     if self.require_features:
         input = torch.cat((torch.cat((e[:int(e.size(0)/2),:], f1),dim=1), torch.cat((e[int(e.size(0)/2):,:], f2),dim=1)), dim=1)
@@ -104,7 +103,7 @@ def evaluate(model, val_loader, criterion):
   for batch in val_loader:
     inputs, labels = batch[:-1], batch[-1]
     outputs = model(inputs).reshape(-1)
-    loss = criterion(outputs, labels)
+    loss = criterion(outputs, labels.to(device))
     with torch.no_grad():
       val_loss += loss.item()
       val_acc += ((labels == (outputs > 0.5)).sum()/len(labels)).item()
@@ -165,7 +164,7 @@ def train():
       model.train()
       inputs, labels = batch[:-1], batch[-1]
       outputs = model(inputs).reshape(-1)
-      loss = criterion(outputs, labels.float().to(device))
+      loss = criterion(outputs, labels.to(device))
       # Backward  
       optimizer.zero_grad()
       loss.backward()
