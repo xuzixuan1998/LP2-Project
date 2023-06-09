@@ -75,7 +75,7 @@ class FTLogReg(nn.Module):
     self.dropout = nn.Dropout(0.3)
     input_size = self.pretrain.config.hidden_size
     if require_features:
-      linear = nn.Linear((input_size+6)*2,512)
+      linear = nn.Linear((input_size+6)*2,input_size)
     else:
       linear = nn.Linear((input_size)*2,input_size)
     self.model = nn.Sequential(
