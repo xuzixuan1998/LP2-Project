@@ -18,8 +18,9 @@ import argparse
 # GPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class CustomizedDataset(Dataset):
-  def __init__(self, path, max_len, require_features=False):
+  def __init__(self, path, tokenizer, max_len, require_features=False):
     self.path = path
+    self.tokenizer = tokenizer
     self.max_len = max_len
     self.require_features = require_features
     with open(os.path.join(self.path, 'data.json')) as file:
@@ -121,10 +122,10 @@ def evaluate(model, val_loader, criterion):
 
 def train():
   print_step = args['print_step']
-  project_name = "LP2_Project_NF_finetune"
+  project_name = "LP2_Project"
   
   # Set save path
-  best_model_path = args['model'] + args['train']
+  best_model_path = args['model'] + '_' +args['train'][:2]
   if args['features']:
     best_model_path += '_features'
   if args['finetune']:
@@ -139,12 +140,12 @@ def train():
   config.lr = args['learning_rate']
   config.batch_size = args['batch_size']
   config.num_epochs = args['n_epochs']
-  config.optimizer = "adam"
+  config.optimizer = "adamw"
 
   # set up training set and loader
   tokenizer = AutoTokenizer.from_pretrained(args['model'])
   train_set = CustomizedDataset(path=args['train'], tokenizer=tokenizer, max_len=args['max_len'], require_features=args['features'])
-  val_set = CustomizedDataset(path="val/", tokenizer=tokenizer, max_len=args['max_len'], require_features=args['features'])
+  val_set = CustomizedDataset(path=args['val'], tokenizer=tokenizer, max_len=args['max_len'], require_features=args['features'])
 
   train_loader = DataLoader(train_set, batch_size=args['batch_size'],shuffle=True)
   val_loader = DataLoader(val_set, batch_size=args['batch_size']) 
@@ -178,7 +179,7 @@ def train():
     for step, batch in enumerate(tqdm.tqdm(train_loader, desc=f"Epoch {epoch+1}")):
       # model feedforward
       model.train()
-      ids, masks, labels = (batch['p1_ids'].to(device), batch['p1_ids'].to(device)), (batch['p1_mask'].to(device), batch['p2_mask'].to(device)), batch['labels']
+      ids, masks, labels = (batch['p1_ids'].to(device), batch['p2_ids'].to(device)), (batch['p1_mask'].to(device), batch['p2_mask'].to(device)), batch['labels']
       features = None
       if args['features']:
         features = (batch['p1_features'].to(device), batch['p2_features'].to(device))
