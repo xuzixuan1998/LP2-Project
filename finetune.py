@@ -94,7 +94,7 @@ class FTLogReg(nn.Module):
       f1, f2 = features
     pdb.set_trace()
     # Forward Pretrain
-    _, pooler_output = self.pretrain(torch.cat((t1,t2),dim=0),torch.cat((m1,m2),dim=0))
+    pooler_output = self.pretrain(torch.cat((t1,t2),dim=0),torch.cat((m1,m2),dim=0)).pooler_output
     e = self.dropout(pooler_output)
     # Forward Linear
     if self.require_features:
