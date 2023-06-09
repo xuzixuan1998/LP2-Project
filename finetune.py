@@ -108,8 +108,11 @@ def evaluate(model, val_loader, criterion):
   batch_len = len(val_loader)
 
   for batch in val_loader:
-    inputs, labels = batch[:-1], batch[-1]
-    outputs = model(inputs).reshape(-1)
+    ids, masks, labels = (batch['p1_ids'].to(device), batch['p2_ids'].to(device)), (batch['p1_mask'].to(device), batch['p2_mask'].to(device)), batch['label'].float().to(device)
+    features = None
+    if args['features']:
+      features = (batch['p1_features'].to(device), batch['p2_features'].to(device))
+    outputs = model(ids, masks, features).reshape(-1)
     loss = criterion(outputs, labels)
     with torch.no_grad():
       val_loss += loss.item()
@@ -176,7 +179,8 @@ def train():
     for step, batch in enumerate(tqdm.tqdm(train_loader, desc=f"Epoch {epoch+1}")):
       # model feedforward
       model.train()
-      ids, masks, labels = (batch['p1_ids'].to(device), batch['p2_ids'].to(device)), (batch['p1_mask'].to(device), batch['p2_mask'].to(device)), torch.tensor(batch['label']).float().to(device)
+      pdb.set_trace()
+      ids, masks, labels = (batch['p1_ids'].to(device), batch['p2_ids'].to(device)), (batch['p1_mask'].to(device), batch['p2_mask'].to(device)), batch['label'].float().to(device)
       features = None
       if args['features']:
         features = (batch['p1_features'].to(device), batch['p2_features'].to(device))
