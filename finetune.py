@@ -92,6 +92,7 @@ class FTLogReg(nn.Module):
     m1, m2 = masks
     if self.require_features:
       f1, f2 = features
+    pdb.set_trace()
     # Forward Pretrain
     e = self.pretrain(torch.cat((t1,t2),dim=0),torch.cat((m1,m2),dim=0)).last_hidden_state[:,0,:]
     e = self.dropout(e)
@@ -179,7 +180,7 @@ def train():
       # model feedforward
       model.train()
       pdb.set_trace()
-      ids, masks, labels = (batch['p1_ids'].to(device), batch['p2_ids'].to(device)), (batch['p1_mask'].to(device), batch['p2_mask'].to(device)), batch['labels']
+      ids, masks, labels = (batch['p1_ids'].to(device), batch['p2_ids'].to(device)), (batch['p1_mask'].to(device), batch['p2_mask'].to(device)), batch['label']
       features = None
       if args['features']:
         features = (batch['p1_features'].to(device), batch['p2_features'].to(device))
