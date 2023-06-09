@@ -55,8 +55,8 @@ class CustomizedDataset(Dataset):
     p2_mask = p2['attention_mask']
     pdb.set_trace()
     if self.require_features:
-      p1_features = torch.tensor(data['p1_features'], dtype=torch.long)
-      p2_features = torch.tensor(data['p2_features'], dtype=torch.long)
+      p1_features = torch.tensor(data['p1_features'])
+      p2_features = torch.tensor(data['p2_features'])
       norm = torch.norm(p1_features, p=2)
       p1_features = p1_features / norm 
       norm = torch.norm(p2_features, p=2)
