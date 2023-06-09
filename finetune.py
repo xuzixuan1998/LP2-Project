@@ -3,18 +3,16 @@ import pdb
 import json
 import tqdm
 import wandb
-import numpy as np
+import argparse
+from sklearn.metrics import f1_score
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import torch.nn.functional as F
-from sklearn.metrics import f1_score
 from torch.utils.data import Dataset, DataLoader
 
 from transformers import AutoTokenizer, AutoModel
 
-import argparse
 # GPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class CustomizedDataset(Dataset):
@@ -92,7 +90,6 @@ class FTLogReg(nn.Module):
     m1, m2 = masks
     if self.require_features:
       f1, f2 = features
-    pdb.set_trace()
     # Forward Pretrain
     pooler_output = self.pretrain(torch.cat((t1,t2),dim=0),torch.cat((m1,m2),dim=0)).pooler_output
     e = self.dropout(pooler_output)
@@ -152,8 +149,8 @@ def train():
 
   # Model
   model = FTLogReg(model_name=args['model'], require_features=args['features'], require_finetune=args['finetune'])
-  # if (torch.cuda.device_count() > 1) and (device != torch.device("cpu")):
-  #     model= nn.DataParallel(model)
+  if (torch.cuda.device_count() > 1) and (device != torch.device("cpu")):
+      model= nn.DataParallel(model)
   model.to(device)
   # Loss and Optimizer
   optimizer = optim.AdamW(model.parameters(), lr=args['learning_rate'])  
