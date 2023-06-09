@@ -53,7 +53,6 @@ class CustomizedDataset(Dataset):
         )
     p2_ids = p2['input_ids']
     p2_mask = p2['attention_mask']
-    pdb.set_trace()
     if self.require_features:
       p1_features = torch.tensor(data['p1_features'])
       p2_features = torch.tensor(data['p2_features'])
@@ -70,6 +69,7 @@ class FTLogReg(nn.Module):
     super().__init__()
     self.require_features = require_features
     self.pretrain = AutoModel.from_pretrained(model_name)
+    pdb.set_trace()
     if not require_finetune:
       for param in self.pretrain.parameters():
         param.requires_grad = False
@@ -179,6 +179,7 @@ def train():
     for step, batch in enumerate(tqdm.tqdm(train_loader, desc=f"Epoch {epoch+1}")):
       # model feedforward
       model.train()
+      pdb.set_trace()
       ids, masks, labels = (batch['p1_ids'].to(device), batch['p2_ids'].to(device)), (batch['p1_mask'].to(device), batch['p2_mask'].to(device)), batch['labels']
       features = None
       if args['features']:
