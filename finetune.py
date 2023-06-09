@@ -42,8 +42,8 @@ class CustomizedDataset(Dataset):
             max_length=self.max_len,
             return_tensors='pt'
         )
-    p1_ids = p1['input_ids']
-    p1_mask = p1['attention_mask']
+    p1_ids = p1['input_ids'].squeeze(0)
+    p1_mask = p1['attention_mask'].squeeze(0)
     p2 = self.tokenizer.encode_plus(
             p2_data,
             padding='max_length',
@@ -51,8 +51,8 @@ class CustomizedDataset(Dataset):
             max_length=self.max_len,
             return_tensors='pt'
         )
-    p2_ids = p2['input_ids']
-    p2_mask = p2['attention_mask']
+    p2_ids = p2['input_ids'].squeeze(0)
+    p2_mask = p2['attention_mask'].squeeze(0)
     if self.require_features:
       p1_features = torch.tensor(data['p1_features'])
       p2_features = torch.tensor(data['p2_features'])
@@ -69,7 +69,6 @@ class FTLogReg(nn.Module):
     super().__init__()
     self.require_features = require_features
     self.pretrain = AutoModel.from_pretrained(model_name)
-    pdb.set_trace()
     if not require_finetune:
       for param in self.pretrain.parameters():
         param.requires_grad = False
