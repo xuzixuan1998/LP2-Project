@@ -18,9 +18,9 @@ import argparse
 # GPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class CustomizedDataset(Dataset):
-  def __init__(self, path, tokenizer, require_features=False):
+  def __init__(self, path, max_len, require_features=False):
     self.path = path
-    self.tokenizer = tokenizer
+    self.max_len = max_len
     self.require_features = require_features
     with open(os.path.join(self.path, 'data.json')) as file:
       self.data = json.load(file)
@@ -34,61 +34,68 @@ class CustomizedDataset(Dataset):
     p1_data = data['p1']
     p2_data = data['p2']
     label = data['label']
-
+    p1 = self.tokenizer.encode_plus(
+            p1_data,
+            padding='max_length',
+            truncation=True,
+            max_length=self.max_len,
+            return_tensors='pt'
+        )
+    p1_ids = p1['input_ids']
+    p1_mask = p1['attention_mask']
+    p2 = self.tokenizer.encode_plus(
+            p2_data,
+            padding='max_length',
+            truncation=True,
+            max_length=self.max_len,
+            return_tensors='pt'
+        )
+    p2_ids = p2['input_ids']
+    p2_mask = p2['attention_mask']
+    pdb.set_trace()
     if self.require_features:
-      p1_features = data['p1_features']
-      p2_features = data['p2_features']
-      return {'p1_data':p1_data, 'p2_data':p2_data, 'p1_features':p1_features, 'p2_features':p2_features, 'label':label}
+      p1_features = torch.tensor(data['p1_features'], dtype=torch.long)
+      p2_features = torch.tensor(data['p2_features'], dtype=torch.long)
+      norm = torch.norm(p1_features, p=2)
+      p1_features = p1_features / norm 
+      norm = torch.norm(p2_features, p=2)
+      p2_features = p2_features / norm 
+      return {'p1_ids':p1_ids, 'p1_mask':p1_mask, 'p2_ids':p2_ids, 'p2_mask':p2_mask, 'p1_features':p1_features, 'p2_features':p2_features, 'label':label}
     else:
-      return {'p1_data':p1_data, 'p2_data':p2_data, 'label':label}
-    
-def collate_fn(batch, tokenizer, require_features):
-    p1_data = [item['p1_data'] for item in batch]
-    p2_data = [item['p2_data'] for item in batch]
-    labels = [item['label'] for item in batch]
-    batch_len = len(labels)
-    encoded_batch = tokenizer.batch_encode_plus(
-        p1_data+p2_data,
-        padding="longest",
-        truncation=True,
-        max_length=256, 
-        return_tensors="pt"
-    )
-    p1_text, p2_text = encoded_batch["input_ids"][:batch_len,:], encoded_batch["input_ids"][batch_len:,:]
-    p1_mask, p2_mask = encoded_batch["attention_mask"][:batch_len,:], encoded_batch["attention_mask"][batch_len:,:]
-    if require_features:
-        p1_features = torch.tensor([item['p1_features'] for item in batch])
-        p2_features = torch.tensor([item['p2_features'] for item in batch])
-        return (p1_text,p1_mask), (p2_text,p2_mask), F.normalize(p1_features,p=2,dim=1), F.normalize(p2_features,p=2,dim=1), torch.tensor(labels).float().to(device)
-    else:
-        return (p1_text,p1_mask), (p2_text,p2_mask), torch.tensor(labels).float().to(device)
+      return {'p1_ids':p1_ids, 'p1_mask':p1_mask, 'p2_ids':p2_ids, 'p2_mask':p2_mask, 'label':label}
 
 class FTLogReg(nn.Module):
-  def __init__(self, model_name, require_features):
+  def __init__(self, model_name, require_features, require_finetune):
     super().__init__()
     self.require_features = require_features
     self.pretrain = AutoModel.from_pretrained(model_name)
-    self.dropout = nn.Dropout(0.1)
+    if not require_finetune:
+      for param in self.pretrain.parameters():
+        param.requires_grad = False
+    self.dropout = nn.Dropout(0.3)
     input_size = self.pretrain.config.hidden_size
     if require_features:
       linear = nn.Linear((input_size+6)*2,512)
     else:
-      linear = nn.Linear((input_size)*2,512)
+      linear = nn.Linear((input_size)*2,input_size)
     self.model = nn.Sequential(
                  linear,
                  nn.ReLU(),
                  nn.Dropout(0.3),
-                 nn.Linear(512,1),
+                 nn.Linear(input_size,1),
                  nn.Sigmoid()
                   )
 
-  def forward(self, inputs):
+  def forward(self, ids, masks, features=None):
+    # Load Data
+    t1, t2 = ids
+    m1, m2 = masks
     if self.require_features:
-      (t1,m1), (t2,m2), f1, f2 = inputs
-    else:
-      (t1,m1), (t2,m2) = inputs
+      f1, f2 = features
+    # Forward Pretrain
     e = self.pretrain(torch.cat((t1,t2),dim=0),torch.cat((m1,m2),dim=0)).last_hidden_state[:,0,:]
     e = self.dropout(e)
+    # Forward Linear
     if self.require_features:
         input = torch.cat((torch.cat((e[:int(e.size(0)/2),:], f1),dim=1), torch.cat((e[int(e.size(0)/2):,:], f2),dim=1)), dim=1)
     else:
@@ -115,7 +122,14 @@ def evaluate(model, val_loader, criterion):
 def train():
   print_step = args['print_step']
   project_name = "LP2_Project_NF_finetune"
-  best_model_path = 'best_model_finetune.pth'
+  
+  # Set save path
+  best_model_path = args['model'] + args['train']
+  if args['features']:
+    best_model_path += '_features'
+  if args['finetune']:
+    best_model_path += '_finetune'
+  best_model_path += '.pth'
 
   # Initilaize WanB
   wandb.init(project=project_name)
@@ -128,31 +142,31 @@ def train():
   config.optimizer = "adam"
 
   # set up training set and loader
-  tokenizer = AutoTokenizer.from_pretrained(args['pretrained'])
-  train_set = CustomizedDataset(path='train/', tokenizer=tokenizer,require_features=args['features'])
-  val_set = CustomizedDataset(path="val/", tokenizer=tokenizer, require_features=args['features'])
+  tokenizer = AutoTokenizer.from_pretrained(args['model'])
+  train_set = CustomizedDataset(path=args['train'], tokenizer=tokenizer, max_len=args['max_len'], require_features=args['features'])
+  val_set = CustomizedDataset(path="val/", tokenizer=tokenizer, max_len=args['max_len'], require_features=args['features'])
 
-  train_loader = DataLoader(train_set, batch_size=args['batch_size'],shuffle=True,collate_fn=lambda batch: collate_fn(batch, tokenizer, require_features=args['features']))
-  val_loader = DataLoader(val_set, batch_size=args['batch_size'],collate_fn=lambda batch: collate_fn(batch, tokenizer, require_features=args['features'])) 
+  train_loader = DataLoader(train_set, batch_size=args['batch_size'],shuffle=True)
+  val_loader = DataLoader(val_set, batch_size=args['batch_size']) 
 
   # Model
-  model = FTLogReg(model_name=args['pretrained'], require_features=args['features'])
-  if (torch.cuda.device_count() > 1) and (device != torch.device("cpu")):
-      model= nn.DataParallel(model)
+  model = FTLogReg(model_name=args['model'], require_features=args['features'], require_finetune=args['finetune'])
+  # if (torch.cuda.device_count() > 1) and (device != torch.device("cpu")):
+  #     model= nn.DataParallel(model)
   model.to(device)
   # Loss and Optimizer
   optimizer = optim.AdamW(model.parameters(), lr=args['learning_rate'])  
   criterion = nn.BCELoss()
   # Scheduler
-  def lr_lambda(step):
-    if step < args['warm_up']:
-        decay_factor = (step + 1) / args['warm_up']
-        return decay_factor
-    else:
-        decay_factor = 0.95** ((step - args['warm_up']) // args['weight_decay'])
-        return decay_factor
-  scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_lambda)
-  # wandb.watch(model, criterion, log="all", log_freq = 100)
+  if args['finetune']:
+    def lr_lambda(step):
+      if step < args['warm_up']:
+          decay_factor = (step + 1) / args['warm_up']
+          return decay_factor
+      else:
+          decay_factor = 0.95** ((step - args['warm_up']) // args['weight_decay'])
+          return decay_factor
+    scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_lambda)
 
   best_f1 = 0
   # Main training Loop
@@ -164,8 +178,11 @@ def train():
     for step, batch in enumerate(tqdm.tqdm(train_loader, desc=f"Epoch {epoch+1}")):
       # model feedforward
       model.train()
-      inputs, labels = batch[:-1], batch[-1]
-      outputs = model(inputs).reshape(-1)
+      ids, masks, labels = (batch['p1_ids'].to(device), batch['p1_ids'].to(device)), (batch['p1_mask'].to(device), batch['p2_mask'].to(device)), batch['labels']
+      features = None
+      if args['features']:
+        features = (batch['p1_features'].to(device), batch['p2_features'].to(device))
+      outputs = model(ids, masks, features).reshape(-1)
       loss = criterion(outputs, labels.to(device))
       # Backward  
       optimizer.zero_grad()
@@ -200,20 +217,26 @@ def train():
           total_loss = 0 
           total_acc = 0
           total_f1 = 0
-      scheduler.step()
+      if args['finetune']:
+        scheduler.step()
   print("Finished Training")
 
 if __name__ == '__main__':
   # define ArgParser
   parser = argparse.ArgumentParser(description='Model Parser')
   parser.add_argument('-n','--n_epochs', default=5, type=int)
-  parser.add_argument('-l','--learning_rate', default=1e-4, type=float)
-  parser.add_argument('-b', '--batch_size', default=256, type=int)
-  parser.add_argument('-print', '--print_step', default=50, type=int)
-  parser.add_argument('-warm_up', '--warm_up', default=20, type=int)
-  parser.add_argument('-weight_decay', '--weight_decay', default=25, type=int)
+  parser.add_argument('-l','--learning_rate', default=1e-5, type=float)
+  parser.add_argument('-b', '--batch_size', default=32, type=int)
+  parser.add_argument('-max_len', '--max_len', default=256, type=int)
+  parser.add_argument('-print', '--print_step', default=100, type=int)
+  parser.add_argument('-warm_up', '--warm_up', default=200, type=int)
+  parser.add_argument('-weight_decay', '--weight_decay', default=250, type=int)
   parser.add_argument('-features', '--features', action='store_true', default=False)
-  parser.add_argument('-p','--pretrained', default='bert-base-uncased', type=str)
+  parser.add_argument('-finetune', '--finetune', action='store_true', default=False)
+  parser.add_argument('-model','--model', default='bert-base-uncased', type=str)
+  parser.add_argument('-train','--train', default='d2_train', type=str)
+  parser.add_argument('-val','--val', default='d2_val', type=str)
+
   args = parser.parse_args().__dict__
   
   train()
