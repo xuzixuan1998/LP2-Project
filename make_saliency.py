@@ -8,7 +8,6 @@ def generate_saliency_map(model, i1, i2):
     model.eval()
 
     # Convert input tokens to tensor
-    pdb.set_trace()
     ids = (i1['input_ids'].float().unsqueeze(0).requires_grad_(), i2['input_ids'].float().unsqueeze(0).requires_grad_())
     masks = (i1['attention_mask'].unsqueeze(0), i2['attention_mask'].unsqueeze(0))
     features = (torch.tensor(i1['input_features']).float().unsqueeze(0).requires_grad_(), torch.tensor(i2['input_features']).float().unsqueeze(0).requires_grad_())

@@ -86,6 +86,7 @@ class FTLogReg(nn.Module):
 
   def forward(self, ids, masks, features=None):
     # Load Data
+    pdb.set_trace()
     t1, t2 = ids
     m1, m2 = masks
     if self.require_features:
