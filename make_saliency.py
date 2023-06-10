@@ -23,7 +23,6 @@ def generate_saliency_map(model, i1, i2):
 
     embedding_gradients = model.pretrain.embeddings.word_embeddings.weight.grad
     idx1, idx2 = ids[0][ids[0] != 0], ids[1][ids[1] != 0]
-    pdb.set_trace()
     ids_gradients_1, ids_gradients_2 =torch.norm(embedding_gradients[idx1], p=2, dim=1), torch.norm(embedding_gradients[idx2], p=2, dim=1)
     features_gradients_1, features_gradients_2 = torch.abs(features[0].grad[0]), torch.abs(features[1].grad[0])
     # Normalize gradients
