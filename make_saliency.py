@@ -19,6 +19,7 @@ def generate_saliency_map(model, i1, i2):
     output.sum().backward()  # Backward pass
 
     # Get the gradients of the input tensor
+    pdb.set_trace()
     ids_gradients = torch.tensor([torch.abs(ids[0].grad[0]), torch.abs(ids[1].grad[0])])
     features_gradients = torch.tensor([torch.abs(features[0].grad[0]), torch.abs(features[1].grad[0])])
     # Normalize gradients
