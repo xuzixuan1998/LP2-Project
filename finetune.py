@@ -148,7 +148,7 @@ def train():
   val_set = CustomizedDataset(path=args['val'], tokenizer=tokenizer, max_len=args['max_len'], require_features=args['features'])
 
   train_loader = DataLoader(train_set, batch_size=args['batch_size'],shuffle=True)
-  val_loader = DataLoader(val_set, batch_size=args['batch_size']) 
+  val_loader = DataLoader(val_set, batch_size=args['batch_size'],shuffle=True) 
 
   # Model
   model = FTLogReg(model_name=args['model'], require_features=args['features'], require_finetune=args['finetune'])
