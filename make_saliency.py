@@ -14,7 +14,7 @@ def generate_saliency_map(model, i1, i2):
     # Forward pass to get model predictions
     model.pretrain.embeddings.word_embeddings.weight.requires_grad_()
     output = model(ids, masks, features)
-
+    print(output)
     # Calculate gradients
     model.zero_grad()
     output.sum().backward()  # Backward pass
