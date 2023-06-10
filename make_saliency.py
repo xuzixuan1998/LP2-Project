@@ -42,6 +42,8 @@ model.load_state_dict(state_dict)
 t1 = "They're responsible for the upkeep of the garage. They're not responsible for the actions of other individuals within the garage."
 t2 = "But threatening a lawyer won't amount to much, they weren't the ones who stole from you. You would need to sue that person if caught for the value of the items."
 tokenizer = AutoTokenizer.from_pretrained(model_name)
+print(tokenizer.tokenize(t1))
+print(tokenizer.tokenize(t2))
 i1 = tokenizer.encode_plus(
             t1,
             padding='max_length',
