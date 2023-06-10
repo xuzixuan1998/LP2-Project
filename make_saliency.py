@@ -20,11 +20,12 @@ def generate_saliency_map(model, i1, i2):
     output.sum().backward()  # Backward pass
 
     # Get the gradients of the input tensor
-    pdb.set_trace()
+
     embedding_gradients = model.pretrain.embeddings.word_embeddings.weight.grad
     idx1, idx2 = ids[0][ids[0] != 0], ids[1][ids[1] != 0]
-    ids_gradients = torch.tensor([torch.norm(embedding_gradients[idx1], p=2, dim=1), torch.norm(embedding_gradients[idx2], p=2, dim=1)])
-    features_gradients = torch.tensor([torch.abs(features[0].grad[0]), torch.abs(features[1].grad[0])])
+    pdb.set_trace()
+    ids_gradients = torch.vstack([torch.norm(embedding_gradients[idx1], p=2, dim=1), torch.norm(embedding_gradients[idx2], p=2, dim=1)])
+    features_gradients = torch.vstack([torch.abs(features[0].grad[0]), torch.abs(features[1].grad[0])])
     # Normalize gradients
     ids_gradients = torch.abs(ids_gradients)
     ids_gradients /= ids_gradients.max(dim=1)
