@@ -49,3 +49,4 @@ input_tokens = tokenizer.encode_plus(
 input_tokens['input_features'] = [14.0, 1.5, 0.03982683982683983, 1, 42.285714285714285, 0.0]
 # input_features = [19.0, 1.0, 0.012048192771084338, 1, 50.578947368421055, 0.0]
 saliency_map = generate_saliency_map(model, input_tokens)
+print(saliency_map[0], saliency_map[1])
