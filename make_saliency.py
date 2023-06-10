@@ -7,7 +7,7 @@ def generate_saliency_map(model, input_tokens):
     model.eval()
 
     # Convert input tokens to tensor
-    ids, masks, features = input_tokens['input_ids'].unsqueeze(0), input_tokens['attention_mask'].unsqueeze(0), torch.tensor(input_tokens['input_features']).unsqueeze(0)
+    ids, masks, features = input_tokens['input_ids'].float().unsqueeze(0), input_tokens['attention_mask'].unsqueeze(0), torch.tensor(input_tokens['input_features']).float().unsqueeze(0)
 
     # Enable gradient calculation for the input tensor
     ids.requires_grad_()
