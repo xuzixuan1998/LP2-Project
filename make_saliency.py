@@ -12,7 +12,7 @@ def generate_saliency_map(model, i1, i2):
     masks = (i1['attention_mask'], i2['attention_mask'])
     features = (torch.tensor(i1['input_features']).unsqueeze(0).requires_grad_(), torch.tensor(i2['input_features']).unsqueeze(0).requires_grad_())
     # Forward pass to get model predictions
-    model.pretrain.embeddings.word_embeddings.requires_grad_()
+    model.pretrain.embeddings.word_embeddings.weight.requires_grad_()
     output = model(ids, masks, features)
 
     # Calculate gradients
@@ -21,7 +21,7 @@ def generate_saliency_map(model, i1, i2):
 
     # Get the gradients of the input tensor
     pdb.set_trace()
-    embedding_gradients = model.pretrain.embeddings.word_embeddings.grad()
+    embedding_gradients = model.pretrain.embeddings.word_embeddings.weight.grad()
     idx1, idx2 = ids[0][(ids[0] != 0) & (ids[0] != 1)], ids[1][(ids[1] != 0) & (ids[1] != 1)]
     ids_gradients = torch.tensor([torch.norm(embedding_gradients[idx1], p=2, dim=1), torch.norm(embedding_gradients[idx2], p=2, dim=1)])
     features_gradients = torch.tensor([torch.abs(features[0].grad[0]), torch.abs(features[1].grad[0])])
