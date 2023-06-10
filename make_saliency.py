@@ -28,8 +28,8 @@ def generate_saliency_map(model, i1, i2):
     # Normalize gradients
     ids_gradients_1 /= ids_gradients_1.max()
     ids_gradients_2 /= ids_gradients_2.max()
-    features_gradients_1 /= features_gradients_1.max()
-    features_gradients_2 /= features_gradients_2.max()
+    # features_gradients_1 /= features_gradients_1.max()
+    # features_gradients_2 /= features_gradients_2.max()
 
 
     return (ids_gradients_1.detach().numpy(), ids_gradients_2.detach().numpy(), features_gradients_1.detach().numpy(), features_gradients_2.detach().numpy())
@@ -39,8 +39,8 @@ model_name = 'bert-base-uncased'
 model = FTLogReg(model_name, True, True)
 state_dict = torch.load('bert-base-uncased_d2_features_finetune.pth')
 model.load_state_dict(state_dict)
-t1 = "They're responsible for the upkeep of the garage. They're not responsible for the actions of other individuals within the garage."
-t2 = "But threatening a lawyer won't amount to much, they weren't the ones who stole from you. You would need to sue that person if caught for the value of the items."
+t1 = "Also, for the folks unaware and all “war is terrible”: the russian war machine made the spectacularly sound decision to place live ammunitions right next to the bunker 😑."
+t2 = "Whether it’s laziness or sheer incompetence, moscow did more to kill all 450+ soldiers than Ukraine did."
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 print(tokenizer.tokenize(t1))
 print(tokenizer.tokenize(t2))
@@ -58,7 +58,7 @@ i2 = tokenizer.encode_plus(
             max_length=512,
             return_tensors='pt'
         )
-i1['input_features'] = [10.0, 2.0, 0.020512820512820513, 0, 30.0, -0.008333333333333331]
-i2['input_features']  = [15.5, 2.5, 0.016443850267379677, 0, 18.725806451612904, 0.2]
+i1['input_features'] = [29.0, 1.0, 0.007407407407407408, 2, 53.0, -0.02541743970315399]
+i2['input_features']  = [17.0, 3.0, 0.02531645569620253, 1, 46.41176470588235, 0.25]
 saliency_map = generate_saliency_map(model, i1, i2)
 print(saliency_map)
