@@ -25,15 +25,15 @@ def generate_saliency_map(model, i1, i2):
     idx1, idx2 = ids[0][ids[0] != 0], ids[1][ids[1] != 0]
     pdb.set_trace()
     ids_gradients_1, ids_gradients_2 =torch.norm(embedding_gradients[idx1], p=2, dim=1), torch.norm(embedding_gradients[idx2], p=2, dim=1)
-    features_gradients_1, features_gradients_1 = torch.abs(features[0].grad[0]), torch.abs(features[1].grad[0])
+    features_gradients_1, features_gradients_2 = torch.abs(features[0].grad[0]), torch.abs(features[1].grad[0])
     # Normalize gradients
     ids_gradients_1 /= ids_gradients_1.max()
     ids_gradients_2 /= ids_gradients_2.max()
     features_gradients_1 /= features_gradients_1.max()
-    features_gradients_1 /= features_gradients_1.max()
+    features_gradients_2 /= features_gradients_2.max()
 
 
-    return ids_gradients.detach().numpy(), features_gradients.detach().numpy()
+    return (ids_gradients_1.detach().numpy(), ids_gradients_2.detach().numpy(), features_gradients_1.detach().numpy(), features_gradients_2.detach().numpy())
 
 model_name = 'bert-base-uncased'
 
