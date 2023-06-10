@@ -91,7 +91,7 @@ class FTLogReg(nn.Module):
     if self.require_features:
       f1, f2 = features
     # Forward Pretrain
-    pooler_output = self.pretrain(torch.cat((t1,t2),dim=0),torch.cat((m1,m2),dim=0)).pooler_output
+    pooler_output = self.pretrain(torch.cat((t1,t2),dim=0),torch.cat((m1,m2),dim=0)).last_hidden_state[:,0,:]
     e = self.dropout(pooler_output)
     # Forward Linear
     if self.require_features:
