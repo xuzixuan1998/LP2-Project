@@ -110,7 +110,7 @@ def evaluate(model, val_loader, criterion):
   val_f1 = .0
   val_loss = .0
   batch_len = len(val_loader)
-
+  device = 'cpu'
   for batch in val_loader:
     ids, masks, labels = (batch['p1_ids'].to(device), batch['p2_ids'].to(device)), (batch['p1_mask'].to(device), batch['p2_mask'].to(device)), batch['label'].float().to(device)
     features = None
@@ -194,7 +194,7 @@ def train():
   if args['test']:
     state_dict = torch.load(best_model_path)
     model.load_state_dict(state_dict)
-    model.to(device)
+    model.to("cpu")
     if args['saliency']:
       val_loader = DataLoader(val_set, batch_size=1,shuffle=True) 
     val_loss, val_acc, val_f1 = evaluate(model, val_loader, criterion)
