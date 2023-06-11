@@ -126,7 +126,7 @@ def evaluate(model, val_loader, criterion):
 def generate_saliency_map(model, val_loader):
     data = {}
     for i, batch in enumerate(val_loader):
-      if i == 10:
+      if len(data) == 10:
         break
       tokens, ids, masks, labels = (batch['p1_data'], batch['p2_data']), (batch['p1_ids'].to(device), batch['p2_ids'].to(device)), (batch['p1_mask'].to(device), batch['p2_mask'].to(device)), batch['label'].float().to(device)
       features = None
@@ -152,7 +152,7 @@ def generate_saliency_map(model, val_loader):
         ids_gradients_2 /= ids_gradients_2.max()
         features_gradients_1 = torch.hstack([token_gradient_1, features_gradients_1])
         features_gradients_2 = torch.hstack([token_gradient_2, features_gradients_2])
-        data[i] = {'p1':tokens[0], 'p2':tokens[1], 'p1_gradients':ids_gradients_1.detach().cpu().numpy().tolist(), 'p2_gradients':ids_gradients_2.detach().cpu().numpy().tolist(), 'feature1_gradients':features_gradients_1.detach().cpu().numpy().tolist(), 'feature2_gradients':features_gradients_2.detach().cpu().numpy().tolist()}
+        data[len(data)] = {'p1':tokens[0], 'p2':tokens[1], 'p1_gradients':ids_gradients_1.detach().cpu().numpy().tolist(), 'p2_gradients':ids_gradients_2.detach().cpu().numpy().tolist(), 'feature1_gradients':features_gradients_1.detach().cpu().numpy().tolist(), 'feature2_gradients':features_gradients_2.detach().cpu().numpy().tolist()}
     with open('saliency.json', 'w') as f:
       json.dump(data, f)
 
