@@ -138,7 +138,7 @@ def generate_saliency_map(model, val_loader):
       model.pretrain.embeddings.word_embeddings.weight.requires_grad_()
       model.zero_grad()
       outputs = model(ids, masks, features).reshape(-1)
-      if ((outputs > 0.5) == labels) and (outputs.item() > 0.95):
+      if ((outputs > 0.5) == labels) and (outputs.item() > 0.95) and (len(tokens[0] < 60)) and (len(tokens[1] < 60)):
         # Calculate gradients
         outputs.sum().backward()
         # Get the gradients of the input tensor
