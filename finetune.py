@@ -195,6 +195,7 @@ def train():
   criterion = nn.BCELoss()
   # If only evaluation
   if args['test']:
+    print(best_model_path)
     state_dict = torch.load(best_model_path)
     model.load_state_dict(state_dict)
     if args['saliency']:
