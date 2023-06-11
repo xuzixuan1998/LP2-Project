@@ -126,6 +126,8 @@ def evaluate(model, val_loader, criterion):
 def generate_saliency_map(model, val_loader):
     data = {}
     for i, batch in enumerate(val_loader):
+      if i == 10:
+        break
       tokens, ids, masks, labels = (batch['p1_data'], batch['p2_data']), (batch['p1_ids'].to(device), batch['p2_ids'].to(device)), (batch['p1_mask'].to(device), batch['p2_mask'].to(device)), batch['label'].float().to(device)
       features = None
       if args['features']:
