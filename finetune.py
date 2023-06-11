@@ -150,7 +150,7 @@ def generate_saliency_map(model, val_loader):
         ids_gradients_2 /= ids_gradients_2.max()
         features_gradients_1 = torch.hstack([token_gradient_1, features_gradients_1])
         features_gradients_2 = torch.hstack([token_gradient_2, features_gradients_2])
-        data[i] = {'p1':tokens[0], 'p2':tokens[1], 'p1_gradients':ids_gradients_1.cpu().numpy().tolist(), 'p2_gradients':ids_gradients_2.cpu().numpy().tolist(), 'feature1_gradients':features_gradients_1.cpu().numpy().tolist(), 'feature2_gradients':features_gradients_2.cpu().numpy().tolist()}
+        data[i] = {'p1':tokens[0], 'p2':tokens[1], 'p1_gradients':ids_gradients_1.detach().cpu().numpy().tolist(), 'p2_gradients':ids_gradients_2.detach().cpu().numpy().tolist(), 'feature1_gradients':features_gradients_1.detach().cpu().numpy().tolist(), 'feature2_gradients':features_gradients_2.detach().cpu().numpy().tolist()}
     with open('saliency.json', 'w') as f:
       json.dump(data, f)
 
