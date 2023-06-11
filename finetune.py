@@ -58,14 +58,15 @@ class CustomizedDataset(Dataset):
       p1_features = p1_features / norm 
       norm = torch.norm(p2_features, p=2)
       p2_features = p2_features / norm 
-      return {'p1_ids':p1_ids, 'p1_mask':p1_mask, 'p2_ids':p2_ids, 'p2_mask':p2_mask, 'p1_features':p1_features, 'p2_features':p2_features, 'label':label}
+      return {'p1_data':self.tokenizer.tokenize(p1_data),'p2_data':self.tokenizer.tokenize(p2_data), 'p1_ids':p1_ids, 'p1_mask':p1_mask, 'p2_ids':p2_ids, 'p2_mask':p2_mask, 'p1_features':p1_features, 'p2_features':p2_features, 'label':label}
     else:
-      return {'p1_ids':p1_ids, 'p1_mask':p1_mask, 'p2_ids':p2_ids, 'p2_mask':p2_mask, 'label':label}
+      return {'p1_data':self.tokenizer.tokenize(p1_data),'p2_data':self.tokenizer.tokenize(p2_data), 'p1_ids':p1_ids, 'p1_mask':p1_mask, 'p2_ids':p2_ids, 'p2_mask':p2_mask, 'label':label}
 
 class FTLogReg(nn.Module):
   def __init__(self, model_name, require_features, require_finetune):
     super().__init__()
     self.require_features = require_features
+    self.model_name = model_name
     self.pretrain = AutoModel.from_pretrained(model_name)
     if not require_finetune:
       for param in self.pretrain.parameters():
@@ -91,7 +92,10 @@ class FTLogReg(nn.Module):
     if self.require_features:
       f1, f2 = features
     # Forward Pretrain
-    pooler_output = self.pretrain(torch.cat((t1,t2),dim=0),torch.cat((m1,m2),dim=0)).last_hidden_state[:,0,:]
+    if self.model_name == 'bert-base-uncased':
+      pooler_output = self.pretrain(torch.cat((t1,t2),dim=0),torch.cat((m1,m2),dim=0)).pooler_output
+    else:
+      pooler_output = self.pretrain(torch.cat((t1,t2),dim=0),torch.cat((m1,m2),dim=0)).last_hidden_state[:,0,:]
     e = self.dropout(pooler_output)
     # Forward Linear
     if self.require_features:
@@ -113,12 +117,47 @@ def evaluate(model, val_loader, criterion):
     if args['features']:
       features = (batch['p1_features'].to(device), batch['p2_features'].to(device))
     outputs = model(ids, masks, features).reshape(-1)
+    pdb.set_trace()
+    if args['saliency']:
+      tokens = (batch['p1_data'], batch['p2_data'])
+      mask = (outputs.unsqueeze(0) > 0.95)
+      generate_saliency_map(model, (ids[0][mask], ids[1][mask]), (masks[0][mask], masks[1][mask]), (features[0][mask], features[1][mask]), (tokens[0][mask], tokens[1][mask]))
     loss = criterion(outputs, labels)
     with torch.no_grad():
       val_loss += loss.item()
       val_acc += ((labels == (outputs > 0.5)).sum()/len(labels)).item()
       val_f1 += f1_score(labels.detach().cpu().numpy(), (outputs.detach().cpu().numpy() > 0.5))
   return val_loss/batch_len, val_acc/batch_len, val_f1/batch_len
+
+def generate_saliency_map(model, ids, masks, features, tokens):
+    # Ouput file
+    with open('saliency.json', 'r') as f:
+      data = json.load(f)
+    data_size = ids[0].size(0)
+    # Convert input tokens to tensor
+    features = (features[0].requires_grad_(), features[1].requires_grad_())
+    # Forward pass to get model predictions
+    model.pretrain.embeddings.word_embeddings.weight.requires_grad_()
+    for i in range(data_size):
+      model.zero_grad()
+      id, mask, feature = (ids[0][i].unsqueeze(0), ids[1][i].unsqueeze(0)), (masks[0][i].unsqueeze(0), masks[1][i].unsqueeze(0)), (features[0][i].unsqueeze(0), features[1][i].unsqueeze(0))
+      output = model(id, mask, feature)
+      # Calculate gradients
+      output.sum().backward()  # Backward pass
+      # Get the gradients of the input tensor
+      embedding_gradients = model.pretrain.embeddings.word_embeddings.weight.grad
+      idx1, idx2 = id[0][id[0] != 0], id[1][id[1] != 0]
+      ids_gradients_1, ids_gradients_2 =torch.norm(embedding_gradients[idx1], p=2, dim=1), torch.norm(embedding_gradients[idx2], p=2, dim=1)
+      features_gradients_1, features_gradients_2 = torch.abs(features[0].grad[0]), torch.abs(features[1].grad[0])
+      # Normalize gradients
+      ids_gradients_1 /= ids_gradients_1.max()
+      ids_gradients_2 /= ids_gradients_2.max()
+      features_gradients_1 /= features_gradients_1.max()
+      features_gradients_2 /= features_gradients_2.max()
+
+      data[len(data)] = {'p1':tokens[0], 'p2':tokens[1], 'p1_gradients':ids_gradients_1, 'p2_gradients':ids_gradients_2, 'feature1_gradients':features_gradients_1, 'feature1_gradients':features_gradients_2}
+    with open('saliency.json', 'w') as f:
+      json.dump(data, f)
 
 def train():
   print_step = args['print_step']
@@ -158,6 +197,11 @@ def train():
   # Loss and Optimizer
   optimizer = optim.AdamW(model.parameters(), lr=args['learning_rate'])  
   criterion = nn.BCELoss()
+  # If only evaluation
+  if args['test']:
+    val_loss, val_acc, val_f1 = evaluate(model, val_loader, criterion)
+    print(f"Model: {best_model_path}, Val Avg. Loss: {val_loss:.4f}, Val Avg. Acc: {val_acc:.4f}, Val Avg. F1: {val_f1:.4f}")
+    return
   # Scheduler
   if args['finetune']:
     def lr_lambda(step):
@@ -234,6 +278,8 @@ if __name__ == '__main__':
   parser.add_argument('-weight_decay', '--weight_decay', default=250, type=int)
   parser.add_argument('-features', '--features', action='store_true', default=False)
   parser.add_argument('-finetune', '--finetune', action='store_true', default=False)
+  parser.add_argument('-test', '--test', action='store_true', default=False)
+  parser.add_argument('-saliency', '--saliency', action='store_true', default=False)
   parser.add_argument('-model','--model', default='bert-base-uncased', type=str)
   parser.add_argument('-train','--train', default='d2_train', type=str)
   parser.add_argument('-val','--val', default='d2_val', type=str)
