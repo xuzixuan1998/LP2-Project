@@ -117,10 +117,10 @@ def evaluate(model, val_loader, criterion):
     if args['features']:
       features = (batch['p1_features'].to(device), batch['p2_features'].to(device))
     outputs = model(ids, masks, features).reshape(-1)
-    pdb.set_trace()
     if args['saliency']:
       tokens = (batch['p1_data'], batch['p2_data'])
       if outputs.item() > 0.95:
+        pdb.set_trace()
         generate_saliency_map(model, ids, masks, features, tokens)
     loss = criterion(outputs, labels)
     with torch.no_grad():
