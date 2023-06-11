@@ -147,13 +147,13 @@ def generate_saliency_map(model, ids, masks, features, tokens):
     # Get the gradients of the input tensor
     embedding_gradients = model.pretrain.embeddings.word_embeddings.weight.grad
     idx1, idx2 = ids[0][ids[0] != 0], ids[1][ids[1] != 0]
+    token_gradient_1, token_gradient_2 = torch.abs(embedding_gradients[idx1]).mean(), torch.abs(embedding_gradients[idx1]).mean()
     ids_gradients_1, ids_gradients_2 =torch.norm(embedding_gradients[idx1], p=2, dim=1), torch.norm(embedding_gradients[idx2], p=2, dim=1)
     features_gradients_1, features_gradients_2 = torch.abs(features[0].grad[0]), torch.abs(features[1].grad[0])
     # Normalize gradients
     ids_gradients_1 /= ids_gradients_1.max()
     ids_gradients_2 /= ids_gradients_2.max()
-    features_gradients_1 /= features_gradients_1.max()
-    features_gradients_2 /= features_gradients_2.max()
+    pdb.set_trace()
     data[len(data)] = {'p1':tokens[0], 'p2':tokens[1], 'p1_gradients':ids_gradients_1, 'p2_gradients':ids_gradients_2, 'feature1_gradients':features_gradients_1, 'feature2_gradients':features_gradients_2}
     with open('saliency.json', 'w') as f:
       json.dump(data, f)
