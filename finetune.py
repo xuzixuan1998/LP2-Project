@@ -137,7 +137,6 @@ def generate_saliency_map(model, ids, masks, features, tokens):
       except:
         data = {}
     # Convert input tokens to tensor
-    pdb.set_trace()
     features = (features[0].requires_grad_(), features[1].requires_grad_())
     # Forward pass to get model predictions
     model.pretrain.embeddings.word_embeddings.weight.requires_grad_()
@@ -156,6 +155,7 @@ def generate_saliency_map(model, ids, masks, features, tokens):
     ids_gradients_2 /= ids_gradients_2.max()
     features_gradients_1 = torch.hstack([token_gradient_1, features_gradients_1])
     features_gradients_2 = torch.hstack([token_gradient_2, features_gradients_2])
+    pdb.set_trace()
     data[len(data)] = {'p1':tokens[0], 'p2':tokens[1], 'p1_gradients':ids_gradients_1, 'p2_gradients':ids_gradients_2, 'feature1_gradients':features_gradients_1, 'feature2_gradients':features_gradients_2}
     with open('saliency.json', 'w') as f:
       json.dump(data, f)
