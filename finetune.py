@@ -190,19 +190,20 @@ def train():
   # Loss and Optimizer
   optimizer = optim.AdamW(model.parameters(), lr=args['learning_rate'])  
   criterion = nn.BCELoss()
-  # If only evaluation
   if args['test']:
     state_dict = torch.load(best_model_path)
     model.load_state_dict(state_dict)
+  # Multi-GPU
+  if (torch.cuda.device_count() > 1) and (device != torch.device("cpu")):
+      model= nn.DataParallel(model)
+  model.to(device)
+  # If only evaluation
+  if args['test']:
     if args['saliency']:
       val_loader = DataLoader(val_set, batch_size=1,shuffle=True) 
     val_loss, val_acc, val_f1 = evaluate(model, val_loader, criterion)
     print(f"Model: {best_model_path}, Val Avg. Loss: {val_loss:.4f}, Val Avg. Acc: {val_acc:.4f}, Val Avg. F1: {val_f1:.4f}")
     return
-  # Multi-GPU
-  if (torch.cuda.device_count() > 1) and (device != torch.device("cpu")):
-      model= nn.DataParallel(model)
-  model.to(device)
   # Scheduler
   if args['finetune']:
     def lr_lambda(step):
