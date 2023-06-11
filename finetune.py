@@ -196,7 +196,7 @@ def train():
     model.to(device)
     if args['saliency']:
       val_loader = DataLoader(val_set, batch_size=1,shuffle=True) 
-      generate_saliency_map(model, ids, val_loader)
+      generate_saliency_map(model, val_loader)
     if args['test']:
       val_loss, val_acc, val_f1 = evaluate(model, val_loader, criterion)
       print(f"Model: {best_model_path}, Val Avg. Loss: {val_loss:.4f}, Val Avg. Acc: {val_acc:.4f}, Val Avg. F1: {val_f1:.4f}")
