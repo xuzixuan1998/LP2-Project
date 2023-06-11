@@ -132,7 +132,10 @@ def evaluate(model, val_loader, criterion):
 def generate_saliency_map(model, ids, masks, features, tokens):
     # Ouput file
     with open('saliency.json', 'w') as f:
-      data = json.load(f)
+      try:
+        data = json.load(f)
+      except:
+        data = {}
     # Convert input tokens to tensor
     pdb.set_trace()
     features = (features[0].requires_grad_(), features[1].requires_grad_())
