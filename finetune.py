@@ -110,52 +110,47 @@ def evaluate(model, val_loader, criterion):
   val_f1 = .0
   val_loss = .0
   batch_len = len(val_loader)
-  device = 'cpu'
   for batch in val_loader:
     ids, masks, labels = (batch['p1_ids'].to(device), batch['p2_ids'].to(device)), (batch['p1_mask'].to(device), batch['p2_mask'].to(device)), batch['label'].float().to(device)
     features = None
     if args['features']:
       features = (batch['p1_features'].to(device), batch['p2_features'].to(device))
     outputs = model(ids, masks, features).reshape(-1)
-    if args['saliency']:
-      tokens = (batch['p1_data'], batch['p2_data'])
-      if outputs.item() > 0.95:
-        generate_saliency_map(model, ids, masks, features, tokens)
-    else:
-      loss = criterion(outputs, labels)
-      with torch.no_grad():
-        val_loss += loss.item()
-        val_acc += ((labels == (outputs > 0.5)).sum()/len(labels)).item()
-        val_f1 += f1_score(labels.detach().cpu().numpy(), (outputs.detach().cpu().numpy() > 0.5))
+    loss = criterion(outputs, labels)
+    with torch.no_grad():
+      val_loss += loss.item()
+      val_acc += ((labels == (outputs > 0.5)).sum()/len(labels)).item()
+      val_f1 += f1_score(labels.detach().cpu().numpy(), (outputs.detach().cpu().numpy() > 0.5))
   return val_loss/batch_len, val_acc/batch_len, val_f1/batch_len
 
-def generate_saliency_map(model, ids, masks, features, tokens):
-    # Ouput file
-    with open('saliency.json', 'r') as f:
-      try:
-        data = json.load(f)
-      except:
-        data = {}
-    # Convert input tokens to tensor
-    features = (features[0].requires_grad_(), features[1].requires_grad_())
-    # Forward pass to get model predictions
-    model.pretrain.embeddings.word_embeddings.weight.requires_grad_()
-    model.zero_grad()
-    output = model(ids, masks, features)
-    # Calculate gradients
-    output.sum().backward()  # Backward pass
-    # Get the gradients of the input tensor
-    embedding_gradients = model.pretrain.embeddings.word_embeddings.weight.grad
-    idx1, idx2 = ids[0][ids[0] != 0], ids[1][ids[1] != 0]
-    token_gradient_1, token_gradient_2 = torch.abs(embedding_gradients[idx1]).mean(), torch.abs(embedding_gradients[idx1]).mean()
-    ids_gradients_1, ids_gradients_2 =torch.norm(embedding_gradients[idx1], p=2, dim=1), torch.norm(embedding_gradients[idx2], p=2, dim=1)
-    features_gradients_1, features_gradients_2 = torch.abs(features[0].grad[0]), torch.abs(features[1].grad[0])
-    # Normalize gradients
-    ids_gradients_1 /= ids_gradients_1.max()
-    ids_gradients_2 /= ids_gradients_2.max()
-    features_gradients_1 = torch.hstack([token_gradient_1, features_gradients_1])
-    features_gradients_2 = torch.hstack([token_gradient_2, features_gradients_2])
-    data[len(data)] = {'p1':tokens[0], 'p2':tokens[1], 'p1_gradients':ids_gradients_1.numpy().tolist(), 'p2_gradients':ids_gradients_2.numpy().tolist(), 'feature1_gradients':features_gradients_1.numpy().tolist(), 'feature2_gradients':features_gradients_2.numpy().tolist()}
+def generate_saliency_map(model, val_loader):
+    data = {}
+    for i, batch in enumerate(val_loader):
+      tokens, ids, masks, labels = (batch['p1_data'], batch['p2_data']), (batch['p1_ids'].to(device), batch['p2_ids'].to(device)), (batch['p1_mask'].to(device), batch['p2_mask'].to(device)), batch['label'].float().to(device)
+      features = None
+      if args['features']:
+        features = (batch['p1_features'].to(device), batch['p2_features'].to(device))
+      # Convert input tokens to tensor
+      features = (features[0].requires_grad_(), features[1].requires_grad_())
+      # Forward pass to get model predictions
+      model.pretrain.embeddings.word_embeddings.weight.requires_grad_()
+      model.zero_grad()
+      outputs = model(ids, masks, features).reshape(-1)
+      if ((outputs > 0.5) == labels) and (outputs.item() > 0.95):
+        # Calculate gradients
+        outputs.sum().backward()
+        # Get the gradients of the input tensor
+        embedding_gradients = model.pretrain.embeddings.word_embeddings.weight.grad
+        idx1, idx2 = ids[0][ids[0] != 0], ids[1][ids[1] != 0]
+        token_gradient_1, token_gradient_2 = torch.abs(embedding_gradients[idx1]).mean(), torch.abs(embedding_gradients[idx1]).mean()
+        ids_gradients_1, ids_gradients_2 =torch.norm(embedding_gradients[idx1], p=2, dim=1), torch.norm(embedding_gradients[idx2], p=2, dim=1)
+        features_gradients_1, features_gradients_2 = torch.abs(features[0].grad[0]), torch.abs(features[1].grad[0])
+        # Normalize gradients
+        ids_gradients_1 /= ids_gradients_1.max()
+        ids_gradients_2 /= ids_gradients_2.max()
+        features_gradients_1 = torch.hstack([token_gradient_1, features_gradients_1])
+        features_gradients_2 = torch.hstack([token_gradient_2, features_gradients_2])
+        data[i] = {'p1':tokens[0], 'p2':tokens[1], 'p1_gradients':ids_gradients_1.numpy().tolist(), 'p2_gradients':ids_gradients_2.numpy().tolist(), 'feature1_gradients':features_gradients_1.numpy().tolist(), 'feature2_gradients':features_gradients_2.numpy().tolist()}
     with open('saliency.json', 'w') as f:
       json.dump(data, f)
 
@@ -195,14 +190,16 @@ def train():
   optimizer = optim.AdamW(model.parameters(), lr=args['learning_rate'])  
   criterion = nn.BCELoss()
       # If only evaluation
-  if args['test']:
+  if args['test'] or args['saliency']:
     state_dict = torch.load(best_model_path)
     model.load_state_dict(state_dict)
-    model.to("cpu")
+    model.to(device)
     if args['saliency']:
       val_loader = DataLoader(val_set, batch_size=1,shuffle=True) 
-    val_loss, val_acc, val_f1 = evaluate(model, val_loader, criterion)
-    print(f"Model: {best_model_path}, Val Avg. Loss: {val_loss:.4f}, Val Avg. Acc: {val_acc:.4f}, Val Avg. F1: {val_f1:.4f}")
+      generate_saliency_map(model, ids, val_loader)
+    if args['test']:
+      val_loss, val_acc, val_f1 = evaluate(model, val_loader, criterion)
+      print(f"Model: {best_model_path}, Val Avg. Loss: {val_loss:.4f}, Val Avg. Acc: {val_acc:.4f}, Val Avg. F1: {val_f1:.4f}")
     return
   # Multi-GPU
   if (torch.cuda.device_count() > 1) and (device != torch.device("cpu")):
