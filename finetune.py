@@ -187,15 +187,11 @@ def train():
 
   # Model
   model = FTLogReg(model_name=args['model'], require_features=args['features'], require_finetune=args['finetune'])
-  if (torch.cuda.device_count() > 1) and (device != torch.device("cpu")):
-      model= nn.DataParallel(model)
-  model.to(device)
   # Loss and Optimizer
   optimizer = optim.AdamW(model.parameters(), lr=args['learning_rate'])  
   criterion = nn.BCELoss()
   # If only evaluation
   if args['test']:
-    print(best_model_path)
     state_dict = torch.load(best_model_path)
     model.load_state_dict(state_dict)
     if args['saliency']:
@@ -203,6 +199,10 @@ def train():
     val_loss, val_acc, val_f1 = evaluate(model, val_loader, criterion)
     print(f"Model: {best_model_path}, Val Avg. Loss: {val_loss:.4f}, Val Avg. Acc: {val_acc:.4f}, Val Avg. F1: {val_f1:.4f}")
     return
+  # Multi-GPU
+  if (torch.cuda.device_count() > 1) and (device != torch.device("cpu")):
+      model= nn.DataParallel(model)
+  model.to(device)
   # Scheduler
   if args['finetune']:
     def lr_lambda(step):
