@@ -58,9 +58,9 @@ class CustomizedDataset(Dataset):
       p1_features = p1_features / norm 
       norm = torch.norm(p2_features, p=2)
       p2_features = p2_features / norm 
-      return {'p1_data':self.tokenizer.tokenize(p1_data),'p2_data':self.tokenizer.tokenize(p2_data), 'p1_ids':p1_ids, 'p1_mask':p1_mask, 'p2_ids':p2_ids, 'p2_mask':p2_mask, 'p1_features':p1_features, 'p2_features':p2_features, 'label':label}
+      return {'p1_ids':p1_ids, 'p1_mask':p1_mask, 'p2_ids':p2_ids, 'p2_mask':p2_mask, 'p1_features':p1_features, 'p2_features':p2_features, 'label':label}
     else:
-      return {'p1_data':self.tokenizer.tokenize(p1_data),'p2_data':self.tokenizer.tokenize(p2_data), 'p1_ids':p1_ids, 'p1_mask':p1_mask, 'p2_ids':p2_ids, 'p2_mask':p2_mask, 'label':label}
+      return {'p1_ids':p1_ids, 'p1_mask':p1_mask, 'p2_ids':p2_ids, 'p2_mask':p2_mask, 'label':label}
 
 class FTLogReg(nn.Module):
   def __init__(self, model_name, require_features, require_finetune):
