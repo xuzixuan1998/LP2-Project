@@ -120,20 +120,21 @@ def evaluate(model, val_loader, criterion):
     if args['saliency']:
       tokens = (batch['p1_data'], batch['p2_data'])
       if outputs.item() > 0.95:
-        pdb.set_trace()
         generate_saliency_map(model, ids, masks, features, tokens)
-    loss = criterion(outputs, labels)
-    with torch.no_grad():
-      val_loss += loss.item()
-      val_acc += ((labels == (outputs > 0.5)).sum()/len(labels)).item()
-      val_f1 += f1_score(labels.detach().cpu().numpy(), (outputs.detach().cpu().numpy() > 0.5))
+    else:
+      loss = criterion(outputs, labels)
+      with torch.no_grad():
+        val_loss += loss.item()
+        val_acc += ((labels == (outputs > 0.5)).sum()/len(labels)).item()
+        val_f1 += f1_score(labels.detach().cpu().numpy(), (outputs.detach().cpu().numpy() > 0.5))
   return val_loss/batch_len, val_acc/batch_len, val_f1/batch_len
 
 def generate_saliency_map(model, ids, masks, features, tokens):
     # Ouput file
-    with open('saliency.json', 'r') as f:
+    with open('saliency.json', 'w') as f:
       data = json.load(f)
     # Convert input tokens to tensor
+    pdb.set_trace()
     features = (features[0].requires_grad_(), features[1].requires_grad_())
     # Forward pass to get model predictions
     model.pretrain.embeddings.word_embeddings.weight.requires_grad_()
